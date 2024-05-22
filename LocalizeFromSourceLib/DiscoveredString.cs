@@ -1,0 +1,10 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LocalizeFromSourceLib
+{
+    public record DiscoveredString(string localizedString, bool isFormat, string file, int line);
+}
