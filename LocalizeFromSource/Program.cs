@@ -8,43 +8,36 @@ namespace LocalizeFromSource
     {
         static void Main(string[] args)
         {
-            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly("LocalizeFromSource.dll");
+            var t = new Decompiler();
+            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly("LocalizeFromSource.dll", new ReaderParameters { ReadSymbols = true });
             foreach (var module in assembly.Modules)
             {
-                foreach (var type in module.Types)
+                foreach (var type in module.Types.Where(t => t.Name == "Program"))
                 {
-                    foreach (var method in type.Methods)
+                    foreach (var method in type.Methods.Where(m => m.Name == "Test1" || m.Name == "Test2"))
                     {
                         if (method.HasBody)
                         {
-                            foreach (var instruction in method.Body.Instructions)
-                            {
-                                if (instruction.OpCode == OpCodes.Call &&
-                                    instruction.Operand is MethodReference methodRef &&
-                                    methodRef.Name == "Loc2")
-                                {
-                                    var prevInstruction = instruction.Previous;
-                                    if (prevInstruction.OpCode == OpCodes.Ldstr)
-                                    {
-                                        string arg = (string)prevInstruction.Operand;
-                                        Console.WriteLine($"Method 'f' called with argument: {arg}");
-                                    }
-                                }
-                            }
+                            t.FindLocalizableStrings(method);
                         }
                     }
                 }
             }
         }
 
+
+
+
         public static void Test1()
         {
             Console.WriteLine(L("Hello, World!"));
+            Console.WriteLine("Whoops");
         }
         public static void Test2()
         {
             int fiftySeven = 57;
-            Console.WriteLine(LI($"I got {fiftySeven.ToString().Length} arguments"));
+            Console.WriteLine(LF($"I got {fiftySeven.ToString().Length} arguments"));
+            Console.WriteLine($"error, I got {fiftySeven.ToString().Length} arguments");
         }
     }
 }

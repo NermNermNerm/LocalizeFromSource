@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace LocalizeFromSourceLib
@@ -127,17 +129,36 @@ namespace LocalizeFromSourceLib
         }
 
         public override string Translate(string stringInSourceLocale)
+            => this.GetTranslation(stringInSourceLocale) ?? stringInSourceLocale;
+
+        private Regex formatRegex = new Regex(@"{{\w+(?<fmt>:[^}]+)}}", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        public override string TranslateFormatted(string formatStringInSourceLocale)
+        {
+            var translation = this.GetTranslation(formatStringInSourceLocale);
+            if (translation is null)
+            {
+                return formatStringInSourceLocale;
+            }
+            else
+            {
+                int counter = 0;
+                return formatRegex.Replace(translation, m => counter++.ToString(CultureInfo.InvariantCulture));
+            }
+        }
+
+        private string? GetTranslation(string stringInSourceLocale)
         {
             var reverseLookup = this.GetSourceLanguageReverseLookup();
             if (this.Locale == null || this.Locale == this.SourceLocale || reverseLookup is null)
             {
-                return stringInSourceLocale;
+                return null;
             }
 
             if (!reverseLookup.TryGetValue(stringInSourceLocale, out string? key))
             {
                 this.RaiseBadTranslation($"The following string is not in the default.json: '{stringInSourceLocale}'");
-                return stringInSourceLocale;
+                return null;
             }
 
             var translations = this.ReadTranslation(this.Locale);
@@ -150,12 +171,7 @@ namespace LocalizeFromSourceLib
             }
 
             this.RaiseBadTranslation($"The following string does not have a translation in {this.Locale}: '{stringInSourceLocale}'");
-            return stringInSourceLocale;
-        }
-
-        public override void Translate(string formatStringInSourceLocale, params object[] formatArgs)
-        {
-            throw new NotImplementedException();
+            return null;
         }
     }
 }

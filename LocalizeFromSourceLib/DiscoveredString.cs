@@ -8,3 +8,4 @@ namespace LocalizeFromSourceLib
 {
     public record DiscoveredString(string localizedString, bool isFormat, string file, int line);
 }
+

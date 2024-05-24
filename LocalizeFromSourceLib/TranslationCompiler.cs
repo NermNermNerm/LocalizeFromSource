@@ -8,6 +8,7 @@ namespace LocalizeFromSourceLib
 {
     public abstract class TranslationCompiler
     {
+        public const string ErrorPrefix = "LFS";
         /// <summary>
         ///   Error code when there are changes to the translations and the compiler is running in build lab mode
         ///   (where it cannot write.)
@@ -20,13 +21,14 @@ namespace LocalizeFromSourceLib
 
         public const int LocaleJsonUnusable = 4;
         public const int LocaleEditsJsonUnusable = 5;
+        public const int StringNotMarked = 6;
 
         public abstract void Compiled(string projectRoot, bool verifyOnly, DiscoveredString[] discoveredString);
 
         protected virtual void Error(int id,  string message)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"LFS{id:4}: {message}");
+            Console.WriteLine($"{ErrorPrefix}{id:4}: {message}");
         }
 
         /*

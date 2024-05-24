@@ -18,7 +18,7 @@ namespace LocalizeFromSourceLib
         /// </summary>
         public abstract string Translate(string stringInSourceLocale);
 
-        public abstract void Translate(string formatStringInSourceLocale, params object[] formatArgs);
+        public abstract string TranslateFormatted(string formatStringInSourceLocale);
 
 
         /// <summary>
