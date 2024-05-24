@@ -1,5 +1,6 @@
 ﻿using Mono.Cecil;
 using Mono.Cecil.Cil;
+using Spectre.Console.Cli;
 using static LocalizeFromSourceLib.LocalizeMethods;
 
 namespace LocalizeFromSource
@@ -8,25 +9,9 @@ namespace LocalizeFromSource
     {
         static void Main(string[] args)
         {
-            var t = new Decompiler();
-            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly("LocalizeFromSource.dll", new ReaderParameters { ReadSymbols = true });
-            foreach (var module in assembly.Modules)
-            {
-                foreach (var type in module.Types.Where(t => t.Name == "Program"))
-                {
-                    foreach (var method in type.Methods.Where(m => m.Name == "Test1" || m.Name == "Test2"))
-                    {
-                        if (method.HasBody)
-                        {
-                            t.FindLocalizableStrings(method);
-                        }
-                    }
-                }
-            }
+            var app = new CommandApp<DecompileCommand>();
+            app.Run(args);
         }
-
-
-
 
         public static void Test1()
         {

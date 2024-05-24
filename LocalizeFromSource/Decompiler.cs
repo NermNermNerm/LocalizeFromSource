@@ -16,6 +16,38 @@ namespace LocalizeFromSource
     {
         private static Regex formatRegex = new Regex(@"{\d+(:[^}]+)?}", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
+        public void FindLocalizableStrings(string dllPath)
+        {
+            var t = new Decompiler();
+            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(dllPath, new ReaderParameters { ReadSymbols = true });
+            foreach (var module in assembly.Modules)
+            {
+                foreach (var type in module.Types)
+                {
+                    foreach (var method in type.Methods)
+                    {
+                        if (method.HasBody)
+                        {
+                            t.FindLocalizableStrings(method);
+                        }
+                    }
+
+                    foreach (var property in type.Properties)
+                    {
+                        if (property.GetMethod?.HasBody == true)
+                        {
+                            t.FindLocalizableStrings(property.GetMethod);
+                        }
+                        if (property.SetMethod?.HasBody == true)
+                        {
+                            t.FindLocalizableStrings(property.SetMethod);
+                        }
+                        // TODO? What about the initializer?  Maybe it's part of a generated constructor?
+                    }
+                }
+            }
+        }
+
         public void FindLocalizableStrings(MethodDefinition method)
         {
             var bestSequencePoint = method.DebugInformation.GetSequencePointMapping().Values.FirstOrDefault(); // If there are any, this is random.
