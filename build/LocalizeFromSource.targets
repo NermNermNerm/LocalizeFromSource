@@ -2,6 +2,6 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <UsingTask TaskName="Exec" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" />
   <Target Name="RunMyExecutable" AfterTargets="AfterBuild">
-    <Exec Command="&quot;$(NuGetPackageRoot)\LocalizeFromSource\tools\LocalizeFromSource.exe&quot;" />
+    <Exec Command="&quot;$(MSBuildThisFileDirectory)..\tools\LocalizeFromSource.exe&quot; -p &quot;$(MSBuildProjectDirectory)&quot; -d &quot;$(TargetPath)&quot;" />
   </Target>
 </Project>

@@ -116,19 +116,19 @@ namespace LocalizeFromSource
         }
 
         private string GetPositionString(SequencePoint? sequencePoint)
-            => sequencePoint is null ? "no-debug-info" : $"{sequencePoint.Document.Url}({sequencePoint.StartLine}, {sequencePoint.StartColumn})";
+            => sequencePoint is null ? "no-debug-info" : $"{sequencePoint.Document.Url}({sequencePoint.StartLine},{sequencePoint.StartColumn})";
 
         protected virtual void ReportBadString(string s, SequencePoint? sequencePoint)
         {
             Console.Error.WriteLine(
-                IF($"{GetPositionString(sequencePoint)}: {TranslationCompiler.ErrorPrefix}{TranslationCompiler.StringNotMarked:d4}: ")
+                IF($"{GetPositionString(sequencePoint)} : error {TranslationCompiler.ErrorPrefix}{TranslationCompiler.StringNotMarked:d4}: ")
                 + LF($"String is not marked as invariant or localized - it should be surrounded with I() or L() to indicate which it is: \"{s}\""));
         }
 
         protected virtual void ReportBadFormatString(string s, SequencePoint? sequencePoint)
         {
             Console.Error.WriteLine(
-                IF($"{GetPositionString(sequencePoint)}: {TranslationCompiler.ErrorPrefix}{TranslationCompiler.StringNotMarked:d4}: ")
+                IF($"{GetPositionString(sequencePoint)} : error {TranslationCompiler.ErrorPrefix}{TranslationCompiler.StringNotMarked:d4}: ")
                 + LF($"Formatted string is not marked as invariant or localized - it should be surrounded with IF() or LF() to indicate which it is: \"{s}\""));
         }
 
