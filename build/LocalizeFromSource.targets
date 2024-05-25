@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <UsingTask TaskName="Exec" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" />
+  <Target Name="RunMyExecutable" AfterTargets="AfterBuild">
+    <Exec Command="&quot;$(NuGetPackageRoot)\LocalizeFromSource\tools\LocalizeFromSource.exe&quot;" />
+  </Target>
+</Project>
