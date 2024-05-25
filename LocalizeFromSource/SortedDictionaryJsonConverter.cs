@@ -1,7 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using System.Text.Json;
 
-namespace LocalizeFromSourceLib
+namespace LocalizeFromSource
 {
     public class SortedDictionaryJsonConverter<TValue> : JsonConverter<Dictionary<string, TValue>>
     {

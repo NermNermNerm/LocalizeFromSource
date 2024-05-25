@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using FuzzySharp;
 
-namespace LocalizeFromSourceLib
+namespace LocalizeFromSource
 {
     public class SdvTranslationCompiler
         : TranslationCompiler

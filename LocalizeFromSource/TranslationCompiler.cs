@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LocalizeFromSourceLib
+namespace LocalizeFromSource
 {
     public abstract class TranslationCompiler
     {

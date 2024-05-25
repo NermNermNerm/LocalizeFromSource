@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\LocalizeFromSource\LocalizeFromSource.csproj" />
     <ProjectReference Include="..\LocalizeFromSourceLib\LocalizeFromSourceLib.csproj" />
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
   </ItemGroup>

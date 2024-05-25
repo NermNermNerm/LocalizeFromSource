@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace LocalizeFromSourceLib
+namespace LocalizeFromSource
 {
     // TODO: Add line&file for the source.
 
