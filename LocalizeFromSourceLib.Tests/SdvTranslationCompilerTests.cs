@@ -4,7 +4,7 @@ using LocalizeFromSource;
 namespace LocalizeFromSourceLib.Tests
 {
     [TestClass]
-    public class UnitTest1
+    public class SdvTranslationCompilerTests
     {
         private const string TestFolderName = "ut1";
         private string i18nFolder = null!;

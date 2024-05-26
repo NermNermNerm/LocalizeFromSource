@@ -1,4 +1,7 @@
-﻿namespace LocalizeFromSource
+﻿using LocalizeFromSourceLib;
+using Mono.Cecil;
+
+namespace LocalizeFromSource
 {
     public abstract class TranslationCompiler
     {
@@ -19,7 +22,39 @@
 
         public abstract bool GenerateI18nFiles(string projectRoot, bool verifyOnly, IReadOnlyCollection<DiscoveredString> discoveredString);
 
+        public IReadOnlySet<string> GetInvariantMethodNames(AssemblyDefinition dll)
+        {
+            HashSet<string> invariantMethods =
+            [
+                typeof(LocalizeMethods).FullName + "." + nameof(LocalizeMethods.I),
+                typeof(LocalizeMethods).FullName + "." + nameof(LocalizeMethods.IF),
+            ];
 
+            invariantMethods.UnionWith(this.DomainSpecificInvariantMethodNames);
+
+            invariantMethods.UnionWith(this.GetMethodsWithCustomAttribute(dll));
+
+            return invariantMethods;
+        }
+
+        private IEnumerable<string> GetMethodsWithCustomAttribute(AssemblyDefinition assembly)
+        {
+            foreach (var module in assembly.Modules)
+            {
+                foreach (var type in module.Types)
+                {
+                    foreach (var method in type.Methods)
+                    {
+                        if (method.CustomAttributes.Any(c => c.AttributeType.FullName == typeof(LocalizeFromSourceLib.ArgumentIsCultureInvariantAttribute).FullName))
+                        {
+                            yield return $"{method.DeclaringType.FullName}.{method.Name}";
+                        }
+                    }
+                }
+            }
+        }
+
+        protected abstract IEnumerable<string> DomainSpecificInvariantMethodNames { get; }
 
         protected virtual void Error(int id,  string message)
         {

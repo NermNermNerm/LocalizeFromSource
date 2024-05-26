@@ -69,9 +69,13 @@ namespace LocalizeFromSource
                     this.Error(TranslationRequired, "Localized strings have been changed - rebuild locally and commit any localization changes.");
                     return false;
                 }
-                else
+                else if (newDefaultJson.Any())
                 {
                     WriteJsonDictionary(Path.Combine(i18nFolder, "default.json"), newDefaultJson, keySortOrderFunction);
+                }
+                else
+                {
+                    File.WriteAllText(Path.Combine(i18nFolder, "default.json"), @"{ ""place-holder"": ""not localized"" }");
                 }
             }
 
@@ -257,6 +261,15 @@ namespace LocalizeFromSource
         private const int MinimumFuzzyMatchScore = 65;
 
         private static readonly Regex hexSixPattern = new Regex(@"[0-9a-f]{6}", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        protected override IEnumerable<string> DomainSpecificInvariantMethodNames => [
+                "StardewModdingAPI.IAssetName.IsEquivalentTo",
+                "StardewModdingAPI.IAssetName.IsEquivalentTo",
+                "StardewModdingAPI.IAssetName.StartsWith",
+                "StardewModdingAPI.IAssetName.IsDirectlyUnderPath",
+                "StardewValley.GameLocation.playSound"
+            ];
+
         private int GetMaxKey(IEnumerable<string> keys)
         {
             int maxKey = 0;
@@ -349,6 +362,8 @@ namespace LocalizeFromSource
             {
                 oldKeyToStringDict = new();
             }
+
+            oldKeyToStringDict.Remove("place-holder");
 
             return oldKeyToStringDict;
         }

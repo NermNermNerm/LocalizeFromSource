@@ -7,7 +7,7 @@ using Mono.Cecil.Cil;
 
 namespace LocalizeFromSource
 {
-    internal class Reporter(bool isStrict)
+    public class Reporter(bool isStrict)
     {
         private List<DiscoveredString> discoveredStrings = new List<DiscoveredString>();
 

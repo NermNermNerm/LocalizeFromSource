@@ -53,9 +53,12 @@ namespace LocalizeFromSource
 
         public override int Execute(CommandContext context, Settings settings)
         {
+            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(settings.DllPath, new ReaderParameters { ReadSymbols = true });
+
+            SdvTranslationCompiler compiler = new SdvTranslationCompiler();
             var decomp = new Decompiler();
             var reporter = new Reporter(settings.IsStrict);
-            decomp.FindLocalizableStrings(settings.DllPath, reporter);
+            decomp.FindLocalizableStrings(assembly, reporter, compiler.GetInvariantMethodNames(assembly));
 
             // Is this a good idea?  Should we really block the build for this?
             if (settings.IsStrict && reporter.AnyUnmarkedStringsEncountered)
@@ -64,7 +67,6 @@ namespace LocalizeFromSource
                 return 1;
             }
 
-            SdvTranslationCompiler compiler = new SdvTranslationCompiler();
             bool completedWithNoErrors = compiler.GenerateI18nFiles(settings.SourceRoot, false, reporter.LocalizableStrings);
             return completedWithNoErrors ? 0 : 1;
         }
