@@ -15,7 +15,7 @@ namespace LocalizeFromSource
     {
         private record SourceChange(string? key, string? oldString, string? newString);
 
-        private static Regex formatStringRegex = new Regex(@"{(?<argNumber>\d+)(?<formatSpecifier>:[^}]+)}(\|(?<argName>\w+)\|)", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+        private static Regex formatStringRegex = new(@"{(?<argNumber>\d+)(?<formatSpecifier>:[^}]+)}(\|(?<argName>\w+)\|)", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
         private static string transformCSharpFormatStringToSdvFormatString(DiscoveredString csharpFormatString)
         {
@@ -30,8 +30,10 @@ namespace LocalizeFromSource
             });
         }
 
-        public override void Compiled(string sourceProjectPath, bool verifyOnly, DiscoveredString[] discoveredStrings)
+        public override bool GenerateI18nFiles(string sourceProjectPath, bool verifyOnly, IReadOnlyCollection<DiscoveredString> discoveredStrings)
         {
+            this.anyErrorsReported = false;
+
             // Note that discoveredStrings might contain the same string twice, discovered at different points in the code.
             //  We're only going to look at one of them.
             Dictionary<string, DiscoveredString> foundStringMap = new();
@@ -45,7 +47,7 @@ namespace LocalizeFromSource
             string? i18nFolder = GetI18nFolder(sourceProjectPath, verifyOnly, foundStringMap.Any(), out i18nFolder);
             if (i18nFolder is null)
             {
-                return;
+                return false;
             }
 
             Dictionary<string, string>? oldKeyToStringDict = ReadDefaultJson(i18nFolder) ?? new Dictionary<string, string>();
@@ -65,7 +67,7 @@ namespace LocalizeFromSource
                 if (verifyOnly)
                 {
                     this.Error(TranslationRequired, "Localized strings have been changed - rebuild locally and commit any localization changes.");
-                    return;
+                    return false;
                 }
                 else
                 {
@@ -107,7 +109,7 @@ namespace LocalizeFromSource
                 if (verifyOnly && edits.Any(e => e.Value.newTarget is not null))
                 {
                     this.Error(TranslationRequired, $"The translation edits file, {editsPath}, contains new translations that have not been applied.  Run the build locally and commit the resulting changes and resubmit the build.");
-                    return;
+                    return false;
                 }
 
                 // Apply any new translations that are still valid
@@ -188,6 +190,8 @@ namespace LocalizeFromSource
                     }
                 }
             }
+
+            return !this.anyErrorsReported;
         }
 
         public static void WriteJsonDictionary<TValue>(string path, Dictionary<string, TValue> dictionary, Func<string,string> stringToSortOrder)
@@ -202,7 +206,7 @@ namespace LocalizeFromSource
             }));
         }
 
-        private Func<string,string> GenerateKeySortFunction(Dictionary<string, string> newDefaultJson, DiscoveredString[] discoveredStrings)
+        private Func<string,string> GenerateKeySortFunction(Dictionary<string, string> newDefaultJson, IReadOnlyCollection<DiscoveredString> discoveredStrings)
         {
             var stringToSortOrderMap = discoveredStrings.ToDictionary(k => k.localizedString, k => $"{k.file}:{k.line:8d}");
             return (s) => stringToSortOrderMap[newDefaultJson[s]];

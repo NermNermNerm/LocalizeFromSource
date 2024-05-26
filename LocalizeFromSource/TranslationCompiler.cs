@@ -1,34 +1,31 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace LocalizeFromSource
+﻿namespace LocalizeFromSource
 {
     public abstract class TranslationCompiler
     {
+        protected bool anyErrorsReported = false;
+
         public const string ErrorPrefix = "LFS";
+
         /// <summary>
         ///   Error code when there are changes to the translations and the compiler is running in build lab mode
         ///   (where it cannot write.)
         /// </summary>
         public const int TranslationRequired = 1;
-
         public const int DefaultJsonUnusable = 2;
-
         public const int DefaultJsonInvalidUserEdit = 3;
-
         public const int LocaleJsonUnusable = 4;
         public const int LocaleEditsJsonUnusable = 5;
         public const int StringNotMarked = 6;
 
-        public abstract void Compiled(string projectRoot, bool verifyOnly, DiscoveredString[] discoveredString);
+        public abstract bool GenerateI18nFiles(string projectRoot, bool verifyOnly, IReadOnlyCollection<DiscoveredString> discoveredString);
+
+
 
         protected virtual void Error(int id,  string message)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"{ErrorPrefix}{id:4}: {message}");
+            // https://learn.microsoft.com/en-us/visualstudio/msbuild/msbuild-diagnostic-format-for-tasks?view=vs-2022
+            Console.WriteLine($"LocalizeFromSource : error {ErrorPrefix}{id:4} : {message}");
+            anyErrorsReported = true;
         }
 
         /*

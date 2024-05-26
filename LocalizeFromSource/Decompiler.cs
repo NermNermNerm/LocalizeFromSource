@@ -16,7 +16,7 @@ namespace LocalizeFromSource
     {
         private static Regex formatRegex = new Regex(@"{\d+(:[^}]+)?}", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-        public void FindLocalizableStrings(string dllPath)
+        public void FindLocalizableStrings(string dllPath, Reporter reporter)
         {
             var t = new Decompiler();
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(dllPath, new ReaderParameters { ReadSymbols = true });
@@ -28,7 +28,7 @@ namespace LocalizeFromSource
                     {
                         if (method.HasBody)
                         {
-                            t.FindLocalizableStrings(method);
+                            t.FindLocalizableStrings(method, reporter);
                         }
                     }
 
@@ -36,11 +36,11 @@ namespace LocalizeFromSource
                     {
                         if (property.GetMethod?.HasBody == true)
                         {
-                            t.FindLocalizableStrings(property.GetMethod);
+                            t.FindLocalizableStrings(property.GetMethod, reporter);
                         }
                         if (property.SetMethod?.HasBody == true)
                         {
-                            t.FindLocalizableStrings(property.SetMethod);
+                            t.FindLocalizableStrings(property.SetMethod, reporter);
                         }
                         // TODO? What about the initializer?  Maybe it's part of a generated constructor?
                     }
@@ -48,8 +48,9 @@ namespace LocalizeFromSource
             }
         }
 
-        public void FindLocalizableStrings(MethodDefinition method)
+        public void FindLocalizableStrings(MethodDefinition method, Reporter reporter)
         {
+            int lastAppendLiteralErrorLineNumber = -1;
             var bestSequencePoint = method.DebugInformation.GetSequencePointMapping().Values.FirstOrDefault(); // If there are any, this is random.
             var instructions = method.Body.Instructions;
             for (int pc = 0; pc < instructions.Count; ++pc)
@@ -70,15 +71,28 @@ namespace LocalizeFromSource
                 bestSequencePoint = method.DebugInformation.GetSequencePoint(instruction) ?? bestSequencePoint;
                 if (this.IsCallToL(instruction))
                 {
-                    this.ReportLocalizedString(s, ldStrSequencePoint);
+                    reporter.ReportLocalizedString(s, ldStrSequencePoint);
                 }
                 else if (this.IsCallToI(instruction))
                 {
                     // Ignore it
                 }
+
                 else if (this.IsCallToAppendLiteral(instruction))
                 {
-                    ReportBadFormatString(s, ldStrSequencePoint ?? bestSequencePoint);
+                    // Format strings like $"foo {x} bar" are often converted to
+                    //  inlined instructions, rather than "foo {0} bar" and then passed
+                    //  to the formatter.  That means that we see "foo " and " bar"
+                    //  as distinct strings.  To reduce the noise, we're just going to
+                    //  report a single one per line.  Note that this means we report
+                    //  a single instance of the error even if there are actually two
+                    //  format strings on the line.  It seems a price worth paying.
+                    var sp = ldStrSequencePoint ?? bestSequencePoint;
+                    if (sp is not null && sp.StartLine != lastAppendLiteralErrorLineNumber)
+                    {
+                        reporter.ReportBadFormatString(s, sp);
+                        lastAppendLiteralErrorLineNumber = sp.StartLine;
+                    }
                 }
                 else if (IsFormatString(s))
                 {
@@ -93,7 +107,7 @@ namespace LocalizeFromSource
                         }
                         else if (this.IsCallToLF(instruction))
                         {
-                            this.ReportLocalizedString(s, ldStrSequencePoint ?? bestSequencePoint);
+                            reporter.ReportLocalizedString(s, ldStrSequencePoint ?? bestSequencePoint);
                             foundCall = true;
                             break;
                         }
@@ -104,38 +118,17 @@ namespace LocalizeFromSource
 
                     if (!foundCall)
                     {
-                        ReportBadFormatString(s, ldStrSequencePoint ?? bestSequencePoint);
+                        reporter.ReportBadFormatString(s, ldStrSequencePoint ?? bestSequencePoint);
                         --pc; // We might be sitting on a Ldstr instruction
                     }
                 }
                 else
                 {
-                    this.ReportBadString(s, ldStrSequencePoint ?? bestSequencePoint);
+                    reporter.ReportBadString(s, ldStrSequencePoint ?? bestSequencePoint);
                 }
             }
         }
 
-        private string GetPositionString(SequencePoint? sequencePoint)
-            => sequencePoint is null ? "no-debug-info" : $"{sequencePoint.Document.Url}({sequencePoint.StartLine},{sequencePoint.StartColumn})";
-
-        protected virtual void ReportBadString(string s, SequencePoint? sequencePoint)
-        {
-            Console.Error.WriteLine(
-                IF($"{GetPositionString(sequencePoint)} : error {TranslationCompiler.ErrorPrefix}{TranslationCompiler.StringNotMarked:d4}: ")
-                + LF($"String is not marked as invariant or localized - it should be surrounded with I() or L() to indicate which it is: \"{s}\""));
-        }
-
-        protected virtual void ReportBadFormatString(string s, SequencePoint? sequencePoint)
-        {
-            Console.Error.WriteLine(
-                IF($"{GetPositionString(sequencePoint)} : error {TranslationCompiler.ErrorPrefix}{TranslationCompiler.StringNotMarked:d4}: ")
-                + LF($"Formatted string is not marked as invariant or localized - it should be surrounded with IF() or LF() to indicate which it is: \"{s}\""));
-        }
-
-        protected virtual void ReportLocalizedString(string s, SequencePoint? sequencePoint)
-        {
-            Console.WriteLine($"Found '{s}' at line {sequencePoint?.StartLine} of {sequencePoint?.Document.Url}");
-        }
 
         private static bool IsFormatString(string s) => formatRegex.IsMatch(s);
 

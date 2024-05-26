@@ -24,7 +24,7 @@ namespace LocalizeFromSource
 
             [Description("If set, insists on every string specify whether it's invariant or localized.")]
             [CommandOption("--strict")]
-            [DefaultValue(true)]
+            [DefaultValue(false)]
             public bool IsStrict { get; init; }
 
             public override ValidationResult Validate()
@@ -54,9 +54,19 @@ namespace LocalizeFromSource
         public override int Execute(CommandContext context, Settings settings)
         {
             var decomp = new Decompiler();
-            decomp.FindLocalizableStrings(settings.DllPath);
+            var reporter = new Reporter(settings.IsStrict);
+            decomp.FindLocalizableStrings(settings.DllPath, reporter);
 
-            return 0;
+            // Is this a good idea?  Should we really block the build for this?
+            if (settings.IsStrict && reporter.AnyUnmarkedStringsEncountered)
+            {
+                Console.Error.WriteLine("Not generating language JSON because there are strings in the source that need to be marked localizable or not.");
+                return 1;
+            }
+
+            SdvTranslationCompiler compiler = new SdvTranslationCompiler();
+            bool completedWithNoErrors = compiler.GenerateI18nFiles(settings.SourceRoot, false, reporter.LocalizableStrings);
+            return completedWithNoErrors ? 0 : 1;
         }
     }
 }

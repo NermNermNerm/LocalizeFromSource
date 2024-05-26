@@ -6,6 +6,6 @@ using System.Threading.Tasks;
 
 namespace LocalizeFromSource
 {
-    public record DiscoveredString(string localizedString, bool isFormat, string file, int line);
+    public record DiscoveredString(string localizedString, bool isFormat, string? file, int? line);
 }
 

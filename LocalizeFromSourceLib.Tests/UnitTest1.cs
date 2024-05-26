@@ -33,13 +33,13 @@ namespace LocalizeFromSourceLib.Tests
             SdvTranslationCompiler testSubject = new SdvTranslationCompiler();
 
             // Starts from nothing
-            testSubject.Compiled(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [new DiscoveredString("one two three", false, "test", 57)]);
+            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [new DiscoveredString("one two three", false, "test", 57)]);
             var defaultJson = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(i18nFolder, "default.json")));
             Assert.AreEqual(1, defaultJson!.Count);
             Assert.AreEqual("one two three", defaultJson["000001"]);
 
             // Starts adds new thing, recognizes old thing and leaves it alone.
-            testSubject.Compiled(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
+            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
                 new DiscoveredString("one two three", false, "test", 57),
                 new DiscoveredString("a b c", false, "test", 67),
                 ]);
@@ -49,7 +49,7 @@ namespace LocalizeFromSourceLib.Tests
             Assert.AreEqual("a b c", defaultJson["000002"]);
 
             // recognizes near match
-            testSubject.Compiled(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
+            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
                 new DiscoveredString("one two four", false, "test", 57),
                 new DiscoveredString("a b c", false, "test", 67),
                 ]);
@@ -70,10 +70,10 @@ namespace LocalizeFromSourceLib.Tests
             var testSubject = new TestableSdvTranslationCompiler();
 
             // Add some source language stuff - do it in two passes to guarantee key order for testing purposes
-            testSubject.Compiled(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
+            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
                 new DiscoveredString("one two three", false, "test", 57),
                 ]);
-            testSubject.Compiled(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
+            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
                 new DiscoveredString("one two three", false, "test", 57),
                 new DiscoveredString("count me in", false, "test", 59)
                 ]);
@@ -92,7 +92,7 @@ namespace LocalizeFromSourceLib.Tests
 
             Assert.AreEqual(0, testSubject.Errors.Count);
             // Run in verify mode
-            testSubject.Compiled(Path.Combine(Environment.CurrentDirectory, TestFolderName), true, [
+            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), true, [
                 new DiscoveredString("one two three", false, "test", 57),
                 new DiscoveredString("count me in", false, "test", 59)
                 ]);
@@ -101,7 +101,7 @@ namespace LocalizeFromSourceLib.Tests
             Assert.IsFalse(File.Exists(deEditsJsonPath));
 
             // Add a new translation and edit another
-            testSubject.Compiled(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
+            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
                 new DiscoveredString("one two three", false, "test", 57),
                 new DiscoveredString("count me in!", false, "test", 59),
                 new DiscoveredString("I added a new thang", false, "test", 61)
@@ -126,7 +126,7 @@ namespace LocalizeFromSourceLib.Tests
                 { "000002", new TranslationEdit(oldSource: "count me in", oldTarget: "ich bin dabei", newSource: "count me in!", newTarget: "ich bin dabei!") },
                 { "000003", new TranslationEdit(oldSource: null, oldTarget: null, newSource: "I added a new thang", newTarget: null) }
             }));
-            testSubject.Compiled(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
+            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
                 new DiscoveredString("one two three", false, "test", 57),
                 new DiscoveredString("count me in!", false, "test", 59),
                 new DiscoveredString("I added a new thang", false, "test", 61)
@@ -148,7 +148,7 @@ namespace LocalizeFromSourceLib.Tests
             {
                 { "000003", new TranslationEdit(oldSource: null, oldTarget: null, newSource: "I added a new thing", newTarget: "Ich habe etwas Neues hinzugefügt") }
             }));
-            testSubject.Compiled(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
+            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
                 new DiscoveredString("one two three", false, "test", 57),
                 new DiscoveredString("count me in!", false, "test", 59),
                 new DiscoveredString("I added a new thing", false, "test", 61)
@@ -161,7 +161,7 @@ namespace LocalizeFromSourceLib.Tests
             Assert.AreEqual("Ich habe etwas Neues hinzugefügt", deTranslation["000003"]);
 
             // Now things get out of sync again
-            testSubject.Compiled(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
+            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
                 new DiscoveredString("one two three five", false, "test", 57),
                 new DiscoveredString("count me in!", false, "test", 59),
                 new DiscoveredString("I added a new thing", false, "test", 61)
@@ -178,7 +178,7 @@ namespace LocalizeFromSourceLib.Tests
             Assert.AreEqual("Ich habe etwas Neues hinzugefügt", deTranslation["000003"]);
 
             // Now things get further out of sync
-            testSubject.Compiled(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
+            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
                 new DiscoveredString("one two three four", false, "test", 57),
                 new DiscoveredString("count me in!", false, "test", 59),
                 new DiscoveredString("I added a new thing", false, "test", 61)
