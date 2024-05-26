@@ -267,7 +267,8 @@ namespace LocalizeFromSource
                 "StardewModdingAPI.IAssetName.IsEquivalentTo",
                 "StardewModdingAPI.IAssetName.StartsWith",
                 "StardewModdingAPI.IAssetName.IsDirectlyUnderPath",
-                "StardewValley.GameLocation.playSound"
+                "StardewValley.GameLocation.playSound",
+                "Netcode.NetFields.AddField",
             ];
 
         private int GetMaxKey(IEnumerable<string> keys)

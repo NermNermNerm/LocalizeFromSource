@@ -44,6 +44,14 @@ namespace LocalizeFromSource
         {
             int lastAppendLiteralErrorLineNumber = -1;
             var bestSequencePoint = method.DebugInformation.GetSequencePointMapping().Values.FirstOrDefault(); // If there are any, this is random.
+
+            if ( /* method.Name == "ToString" && */ bestSequencePoint is null)
+            {
+                // Perhaps we should do this any time there is no sequence point information?  Seems like it would
+                // always indicate generated code.
+                return;
+            }
+
             var instructions = method.Body.Instructions;
             for (int pc = 0; pc < instructions.Count; ++pc)
             {
@@ -65,11 +73,6 @@ namespace LocalizeFromSource
                 {
                     reporter.ReportLocalizedString(s, ldStrSequencePoint);
                 }
-                else if (this.IsCallToInvariant(instruction, invariantMethods))
-                {
-                    // Ignore it
-                }
-
                 else if (this.IsCallToAppendLiteral(instruction))
                 {
                     // Format strings like $"foo {x} bar" are often converted to
@@ -116,7 +119,22 @@ namespace LocalizeFromSource
                 }
                 else
                 {
-                    reporter.ReportBadString(s, ldStrSequencePoint ?? bestSequencePoint);
+                    while (pc < instructions.Count && instruction.OpCode != OpCodes.Ldstr && instruction.OpCode != OpCodes.Call && instruction.OpCode != OpCodes.Callvirt)
+                    {
+                        ++pc;
+                        instruction = instructions[pc];
+                        bestSequencePoint = method.DebugInformation.GetSequencePoint(instruction) ?? bestSequencePoint;
+                    }
+                    if (!this.IsCallToInvariant(instruction, invariantMethods))
+                    {
+                        reporter.ReportBadString(s, ldStrSequencePoint ?? bestSequencePoint);
+                    }
+
+                    if (instruction.OpCode == OpCodes.Ldstr)
+                    {
+                        --pc;
+                    }
+
                 }
             }
         }
@@ -129,7 +147,7 @@ namespace LocalizeFromSource
             => this.IsCallToLocalizeMethods(instruction, nameof(LocalizeMethods.L));
 
         private bool IsCallToInvariant(Instruction instruction, IReadOnlySet<string> invariantMethodNames)
-            => instruction.OpCode == OpCodes.Call
+            => (instruction.OpCode == OpCodes.Call || instruction.OpCode == OpCodes.Callvirt)
                 && instruction.Operand is MethodReference methodRef
                 && invariantMethodNames.Contains(methodRef.DeclaringType.FullName + "." + methodRef.Name);
 

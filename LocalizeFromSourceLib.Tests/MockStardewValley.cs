@@ -11,6 +11,6 @@ namespace StardewValley
 {
     public class GameLocation
     {
-        public void playSound(string s) { }
+        public virtual void playSound(string s, bool isLoud = false) { }
     }
 }
