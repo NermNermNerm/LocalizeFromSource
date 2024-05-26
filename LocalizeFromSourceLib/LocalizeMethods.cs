@@ -2,14 +2,17 @@
 
 namespace LocalizeFromSourceLib
 {
-    public class LocalizeMethods
+    /// <summary>
+    ///   Localization methods.
+    /// </summary>
+    public static class LocalizeMethods
     {
         internal static Translator? Translator { get; set; } = new SdvTranslator();
 
         /// <summary>
         ///   Localizes either a string literal.
         /// </summary>
-        /// <param name="formatString">
+        /// <param name="stringInSourceLocale">
         ///   The string to be used - note that this must be a literal string, not an expression
         ///   that results in a string.
         /// </param>
@@ -18,7 +21,7 @@ namespace LocalizeFromSourceLib
             => Translator!.Translate(stringInSourceLocale);
 
         /// <summary>
-        ///   Same as <see cref="<L"/> except for interpolated strings.
+        ///   Same as <see cref="L"/> except for interpolated strings.
         /// </summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static string LF(FormattableString s)

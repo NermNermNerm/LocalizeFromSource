@@ -1,15 +1,20 @@
 <package>
   <metadata>
     <id>LocalizeFromSource</id>
-    <version>1.0.3</version>
+    <version>1.0.7</version>
     <authors>Steve Benz</authors>
     <owners>Steve Benz</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Allows you to write source-language strings in your source code.  Updates to the code generate updates to key-value-pair-based localization systems.</description>
+    <dependencies>
+      <group targetFramework="net6.0" />
+    </dependencies>
   </metadata>
 
   <files>
-    <file src="LocalizeFromSourceLib\bin\Debug\net8.0\LocalizeFromSourceLib.dll" target="lib\net8.0\ClassLibrary.dll" />
+    <file src="LocalizeFromSourceLib\bin\Debug\net6.0\LocalizeFromSourceLib.dll" target="lib\net6.0\LocalizeFromSourceLib.dll" />
+    <file src="LocalizeFromSourceLib\bin\Debug\net6.0\LocalizeFromSourceLib.pdb" target="lib\net6.0\LocalizeFromSourceLib.pdb" />
+    <file src="LocalizeFromSourceLib\bin\Debug\net6.0\LocalizeFromSourceLib.xml" target="lib\net6.0\LocalizeFromSourceLib.xml" />
     <file src="LocalizeFromSource\bin\Debug\net8.0\*" target="tools" />
     <file src="build\LocalizeFromSource.targets" target="build\LocalizeFromSource.targets" />
   </files>

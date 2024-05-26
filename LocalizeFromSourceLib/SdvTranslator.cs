@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace LocalizeFromSourceLib
 {
-    public class SdvTranslator : Translator
+    internal class SdvTranslator : Translator
     {
         private readonly Lazy<string?> folderPath;
         private readonly Lazy<Dictionary<string, string>?> defaultJson;

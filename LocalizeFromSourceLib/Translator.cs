@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace LocalizeFromSourceLib
 {
-    public abstract class Translator
+    internal abstract class Translator
     {
         public string? Locale { get; set; } = null;
         public string? SourceLocale { get; set; } = null;
@@ -14,7 +14,7 @@ namespace LocalizeFromSourceLib
         /// <summary>
         ///   Gets a translation of <paramref name="stringInSourceLocale"/> - if none can be had for the <see cref="Locale"/>,
         ///   it falls back to the source string.  It does not throw exceptions if translation files are missing or corrupt,
-        ///   reporting those with <see cref="OnError"/> and <see cref="OnWarning"/> instead.
+        ///   reporting those with <see cref="OnTranslationFilesCorrupt"/> and <see cref="OnBadTranslation"/> instead.
         /// </summary>
         public abstract string Translate(string stringInSourceLocale);
 
