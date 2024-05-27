@@ -142,7 +142,7 @@ namespace LocalizeFromSource
             => this.IsCallToLocalizeMethods(instruction, nameof(LocalizeMethods.L));
 
         private bool IsCallToInvariant(Instruction instruction, IReadOnlySet<string> invariantMethodNames)
-            => (instruction.OpCode == OpCodes.Call || instruction.OpCode == OpCodes.Callvirt)
+            => (instruction.OpCode == OpCodes.Call || instruction.OpCode == OpCodes.Callvirt || instruction.OpCode == OpCodes.Newobj)
                 && instruction.Operand is MethodReference methodRef
                 && invariantMethodNames.Contains(methodRef.DeclaringType.FullName + "." + methodRef.Name);
 

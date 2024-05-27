@@ -7,7 +7,7 @@ using Mono.Cecil.Cil;
 
 namespace LocalizeFromSource
 {
-    public class Reporter(bool isStrict)
+    public class Reporter(Config config)
     {
         private List<DiscoveredString> discoveredStrings = new List<DiscoveredString>();
         private SequencePoint? lastReportSequencePoint;
@@ -28,6 +28,11 @@ namespace LocalizeFromSource
                 return;
             }
 
+            if (config.InvariantStringPatterns.Any(r => r.IsMatch(s)))
+            {
+                return;
+            }
+
             this.AnyUnmarkedStringsEncountered = true;
 
             // Format strings can get broken into bits - minimize the spam by only reporting one error per line.
@@ -37,7 +42,7 @@ namespace LocalizeFromSource
                 || lastReportSequencePoint.StartLine != sequencePoint.StartLine)
             {
                 Console.Error.WriteLine(
-                    $"{GetPositionString(sequencePoint)} : {(isStrict ? "error" : "warning")} {TranslationCompiler.ErrorPrefix}{TranslationCompiler.StringNotMarked:d4}: "
+                    $"{GetPositionString(sequencePoint)} : {(config.IsStrict ? "error" : "warning")} {TranslationCompiler.ErrorPrefix}{TranslationCompiler.StringNotMarked:d4}: "
                     + $"String is not marked as invariant or localized - it should be surrounded with I(), IF(), L() or LF() to indicate which it is: \"{s}\"");
             }
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using LocalizeFromSource;
 using LocalizeFromSourceLib;
@@ -14,6 +15,8 @@ namespace LocalizeFromSourceLib.Tests
     [TestClass]
     public class DecompilerTests
     {
+        private Config defaultConfig = new Config(true, Array.Empty<Regex>(), Array.Empty<string>());
+
         [TestMethod]
         public void Test1()
         {
@@ -24,7 +27,7 @@ namespace LocalizeFromSourceLib.Tests
             var reporter = new StubReporter();
             var compiler = new SdvTranslationCompiler();
 
-            testSubject.FindLocalizableStrings(decompilerTestTarget, reporter, compiler.GetInvariantMethodNames(assembly));
+            testSubject.FindLocalizableStrings(decompilerTestTarget, reporter, compiler.GetInvariantMethodNames(assembly, defaultConfig));
             Assert.AreEqual(2, reporter.LocalizableStrings.Count);
             Assert.IsTrue(reporter.LocalizableStrings.Any(s => s.localizedString == "should be found"));
             Assert.IsTrue(reporter.LocalizableStrings.Any(s => s.localizedString == "should be found{0}"));
@@ -42,7 +45,7 @@ namespace LocalizeFromSourceLib.Tests
             var reporter = new StubReporter();
             var compiler = new SdvTranslationCompiler();
 
-            testSubject.FindLocalizableStrings(decompilerTestTarget, reporter, compiler.GetInvariantMethodNames(assembly));
+            testSubject.FindLocalizableStrings(decompilerTestTarget, reporter, compiler.GetInvariantMethodNames(assembly, defaultConfig));
             Assert.AreEqual(1, reporter.LocalizableStrings.Count);
             Assert.IsTrue(reporter.LocalizableStrings.Any(s => s.localizedString == "should be found"));
             Assert.AreEqual(0, reporter.BadStrings.Count);

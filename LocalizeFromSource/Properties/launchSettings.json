@@ -2,7 +2,7 @@
   "profiles": {
     "LocalizeFromSource": {
       "commandName": "Project",
-      "commandLineArgs": "--dll E:\\repos\\NermNermNerm.Junimatic\\Junimatic\\bin\\Debug\\Junimatic.dll --sourceRoot E:\\tmp\\Junimatic"
+      "commandLineArgs": "--dll E:\\repos\\NermNermNerm.Junimatic\\Junimatic\\bin\\Debug\\Junimatic.dll --sourceRoot E:\\repos\\NermNermNerm.Junimatic\\Junimatic"
     }
   }
 }

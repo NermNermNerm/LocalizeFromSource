@@ -21,10 +21,11 @@ namespace LocalizeFromSource
         public const int StringNotMarked = 6;
         public const int ImproperUseOfMethod = 7;
         public const int LocalizingEmpty = 8;
+        public const int BadConfigFile = 9;
 
         public abstract bool GenerateI18nFiles(string projectRoot, bool verifyOnly, IReadOnlyCollection<DiscoveredString> discoveredString);
 
-        public IReadOnlySet<string> GetInvariantMethodNames(AssemblyDefinition dll)
+        public IReadOnlySet<string> GetInvariantMethodNames(AssemblyDefinition dll, Config config)
         {
             HashSet<string> invariantMethods =
             [
@@ -41,6 +42,8 @@ namespace LocalizeFromSource
             invariantMethods.UnionWith(this.DomainSpecificInvariantMethodNames);
 
             invariantMethods.UnionWith(this.GetMethodsWithCustomAttribute(dll));
+
+            invariantMethods.UnionWith(config.InvariantMethods);
 
             return invariantMethods;
         }

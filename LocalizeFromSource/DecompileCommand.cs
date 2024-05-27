@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Mono.Cecil;
 using Spectre.Console;
@@ -21,11 +23,6 @@ namespace LocalizeFromSource
             [Description("Path to the root of the source tree for the project aka the directory containing the .csproj file. (Required)")]
             [CommandOption("-p|--sourceRoot")]
             public string SourceRoot { get; init; } = null!;
-
-            [Description("If set, insists on every string specify whether it's invariant or localized.")]
-            [CommandOption("--strict")]
-            [DefaultValue(false)]
-            public bool IsStrict { get; init; }
 
             public override ValidationResult Validate()
             {
@@ -53,15 +50,35 @@ namespace LocalizeFromSource
 
         public override int Execute(CommandContext context, Settings settings)
         {
+            string configPath = Path.Combine(settings.SourceRoot, "LocalizeFromSourceConfig.json");
+            Config? config = new Config();
+            if (File.Exists(configPath))
+            {
+                try
+                {
+                    var options = new JsonSerializerOptions() { PropertyNameCaseInsensitive = true };
+                    options.Converters.Add(new RegexJsonConverter());
+                    config = JsonSerializer.Deserialize<Config>(File.ReadAllText(configPath), options);
+                    if (config is null)
+                    {
+                        throw new JsonException("null is not expected");
+                    }
+                }
+                catch(Exception ex)
+                {
+                    Console.Error.WriteLine($"error {TranslationCompiler.ErrorPrefix}{TranslationCompiler.BadConfigFile:d4}: {ex.Message}");
+                    return 1;
+                }
+            }
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(settings.DllPath, new ReaderParameters { ReadSymbols = true });
 
             SdvTranslationCompiler compiler = new SdvTranslationCompiler();
             var decomp = new Decompiler();
-            var reporter = new Reporter(settings.IsStrict);
-            decomp.FindLocalizableStrings(assembly, reporter, compiler.GetInvariantMethodNames(assembly));
+            var reporter = new Reporter(config);
+            decomp.FindLocalizableStrings(assembly, reporter, compiler.GetInvariantMethodNames(assembly, config));
 
             // Is this a good idea?  Should we really block the build for this?
-            if (settings.IsStrict && reporter.AnyUnmarkedStringsEncountered)
+            if (config.IsStrict && reporter.AnyUnmarkedStringsEncountered)
             {
                 Console.Error.WriteLine("Not generating language JSON because there are strings in the source that need to be marked localizable or not.");
                 return 1;

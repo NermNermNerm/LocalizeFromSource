@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using LocalizeFromSource;
 using Mono.Cecil.Cil;
@@ -12,7 +13,7 @@ namespace LocalizeFromSourceLib.Tests
         : Reporter
     {
         public StubReporter()
-            : base(isStrict: true)
+            : base(new Config(true, Array.Empty<Regex>(), Array.Empty<string>()))
         {
         }
 
