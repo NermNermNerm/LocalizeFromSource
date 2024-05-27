@@ -21,11 +21,6 @@ namespace LocalizeFromSourceLib.Tests
         private string MakeString(SequencePoint? sequencePoint)
             => sequencePoint is null ? "(?)" : $"({Path.GetFileName(sequencePoint.Document.Url)}:{sequencePoint.StartLine})";
 
-        public override void ReportBadFormatString(string s, SequencePoint? sequencePoint)
-        {
-            BadStrings.Add(MakeString(sequencePoint) + s);
-        }
-
         public override void ReportBadString(string s, SequencePoint? sequencePoint)
         {
             BadStrings.Add(MakeString(sequencePoint) + s);

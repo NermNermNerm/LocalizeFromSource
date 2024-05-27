@@ -7,8 +7,6 @@ namespace LocalizeFromSource
 {
     public class Decompiler
     {
-        private static Regex formatRegex = new Regex(@"{\d+(:[^}]+)?}", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
         public void FindLocalizableStrings(AssemblyDefinition assembly, Reporter reporter, IReadOnlySet<string> invariantMethods)
         {
             var t = new Decompiler();
@@ -42,7 +40,9 @@ namespace LocalizeFromSource
 
         public void FindLocalizableStrings(MethodDefinition method, Reporter reporter, IReadOnlySet<string> invariantMethods)
         {
-            int lastAppendLiteralErrorLineNumber = -1;
+            bool isNoStrictMode =
+                method.CustomAttributes.Any(c => c.AttributeType.FullName == typeof(NoStrictAttribute).FullName)
+                || method.DeclaringType.CustomAttributes.Any(c => c.AttributeType.FullName == typeof(NoStrictAttribute).FullName);
             var bestSequencePoint = method.DebugInformation.GetSequencePointMapping().Values.FirstOrDefault(); // If there are any, this is random.
 
             if ( /* method.Name == "ToString" && */ bestSequencePoint is null)
@@ -52,7 +52,24 @@ namespace LocalizeFromSource
                 return;
             }
 
+            // LocalizeMethods.L is the one certainty in the storm.  Calls to it should always be immediately preceded by
+            //   a ldstr instruction.  If they're not, it's a misuse of the function and will likely result in runtime errors
+            //   so we first scan for that situation before proceeding with the more loosey-goosey world of invariant and
+            //   formatted strings.
             var instructions = method.Body.Instructions;
+            for (int pc = 1; pc < instructions.Count; ++pc)
+            {
+                var instruction = instructions[pc];
+                var prevInstruction = instruction.Previous;
+                bestSequencePoint = method.DebugInformation.GetSequencePoint(instruction) ?? method.DebugInformation.GetSequencePoint(prevInstruction);
+                if (this.IsCallToL(instruction) && prevInstruction.OpCode != OpCodes.Ldstr)
+                {
+                    reporter.ReportBadUsage(bestSequencePoint, TranslationCompiler.ImproperUseOfMethod, $"The argument to {nameof(LocalizeMethods)}.{nameof(LocalizeMethods.L)} should always be a literal string.  If this is a formatted string, use {nameof(LocalizeMethods.LF)} instead.");
+                }
+            }
+
+            // TODO: There may be a similar pattern to protect LocalizeMethods.LF
+
             for (int pc = 0; pc < instructions.Count; ++pc)
             {
                 var instruction = instructions[pc];
@@ -63,84 +80,62 @@ namespace LocalizeFromSource
                     continue;
                 }
 
+                // The idea here is to start from a 'Ldstr' instruction and proceed forward until we get to a 'call'
+                //  instruction that we recognize - ignoring all the mayhem in between.  Because all the recognized
+                //  methods are expecting a literal string, we can be somewhat confident that we're matching the
+                //  string to the call correctly.  But we're totally dependent upon the code meeting this assumption.
+
                 var ldStrInstruction = instruction;
                 var ldStrSequencePoint = method.DebugInformation.GetSequencePoint(ldStrInstruction);
                 string s = (string)instruction.Operand;
+
                 ++pc;
                 instruction = instructions[pc];
                 bestSequencePoint = method.DebugInformation.GetSequencePoint(instruction) ?? bestSequencePoint;
-                if (this.IsCallToL(instruction))
+                bool foundCall = false;
+                while (pc < instructions.Count && instruction.OpCode != OpCodes.Ldstr)
                 {
-                    reporter.ReportLocalizedString(s, ldStrSequencePoint);
-                }
-                else if (this.IsCallToAppendLiteral(instruction))
-                {
-                    // Format strings like $"foo {x} bar" are often converted to
-                    //  inlined instructions, rather than "foo {0} bar" and then passed
-                    //  to the formatter.  That means that we see "foo " and " bar"
-                    //  as distinct strings.  To reduce the noise, we're just going to
-                    //  report a single one per line.  Note that this means we report
-                    //  a single instance of the error even if there are actually two
-                    //  format strings on the line.  It seems a price worth paying.
-                    var sp = ldStrSequencePoint ?? bestSequencePoint;
-                    if (sp is not null && sp.StartLine != lastAppendLiteralErrorLineNumber)
+                    if (this.IsCallToL(instruction))
                     {
-                        reporter.ReportBadFormatString(s, sp);
-                        lastAppendLiteralErrorLineNumber = sp.StartLine;
+                        reporter.ReportLocalizedString(s, ldStrSequencePoint);
+                        foundCall = true;
+                        break;
                     }
-                }
-                else if (IsFormatString(s))
-                {
-                    bool foundCall = false;
-                    while (pc < instructions.Count && instruction.OpCode != OpCodes.Ldstr)
+                    else if (this.IsCallToLF(instruction))
                     {
-                        if (this.IsCallToInvariant(instruction, invariantMethods))
-                        {
-                            // Ignore it.
-                            foundCall = true;
-                            break;
-                        }
-                        else if (this.IsCallToLF(instruction))
-                        {
-                            reporter.ReportLocalizedString(s, ldStrSequencePoint ?? bestSequencePoint);
-                            foundCall = true;
-                            break;
-                        }
-                        ++pc;
-                        instruction = instructions[pc];
-                        bestSequencePoint = method.DebugInformation.GetSequencePoint(instruction) ?? bestSequencePoint;
-                    };
+                        reporter.ReportLocalizedString(s, ldStrSequencePoint ?? bestSequencePoint);
+                        foundCall = true;
+                        break;
+                    }
+                    else if (this.IsCallToInvariant(instruction, invariantMethods))
+                    {
+                        // Ignore it.
+                        foundCall = true;
+                        break;
+                    }
 
-                    if (!foundCall)
+                    ++pc;
+                    if (pc < instructions.Count)
                     {
-                        reporter.ReportBadFormatString(s, ldStrSequencePoint ?? bestSequencePoint);
-                        --pc; // We might be sitting on a Ldstr instruction
-                    }
-                }
-                else
-                {
-                    while (pc < instructions.Count && instruction.OpCode != OpCodes.Ldstr && instruction.OpCode != OpCodes.Call && instruction.OpCode != OpCodes.Callvirt)
-                    {
-                        ++pc;
                         instruction = instructions[pc];
                         bestSequencePoint = method.DebugInformation.GetSequencePoint(instruction) ?? bestSequencePoint;
                     }
-                    if (!this.IsCallToInvariant(instruction, invariantMethods))
+                }
+
+                if (!foundCall) // Treat empty strings as invariant.
+                {
+                    if (!isNoStrictMode)
                     {
                         reporter.ReportBadString(s, ldStrSequencePoint ?? bestSequencePoint);
                     }
 
                     if (instruction.OpCode == OpCodes.Ldstr)
                     {
-                        --pc;
+                        --pc; // back up one - the for() loop will increment this and skip the string at this instruction.
                     }
-
                 }
             }
         }
-
-
-        private static bool IsFormatString(string s) => formatRegex.IsMatch(s);
 
 
         private bool IsCallToL(Instruction instruction)
@@ -159,11 +154,5 @@ namespace LocalizeFromSource
                 && instruction.Operand is MethodReference methodRef
                 && methodRef.DeclaringType.FullName == typeof(LocalizeMethods).FullName
                 && methodRef.Name == methodName;
-
-        private bool IsCallToAppendLiteral(Instruction instruction)
-            => instruction.OpCode == OpCodes.Call
-                && instruction.Operand is MethodReference methodRef
-                && methodRef.DeclaringType.FullName == typeof(System.Runtime.CompilerServices.DefaultInterpolatedStringHandler).FullName
-                && methodRef.Name == "AppendLiteral";
     }
 }

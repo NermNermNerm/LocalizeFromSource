@@ -19,6 +19,8 @@ namespace LocalizeFromSource
         public const int LocaleJsonUnusable = 4;
         public const int LocaleEditsJsonUnusable = 5;
         public const int StringNotMarked = 6;
+        public const int ImproperUseOfMethod = 7;
+        public const int LocalizingEmpty = 8;
 
         public abstract bool GenerateI18nFiles(string projectRoot, bool verifyOnly, IReadOnlyCollection<DiscoveredString> discoveredString);
 
@@ -29,6 +31,12 @@ namespace LocalizeFromSource
                 typeof(LocalizeMethods).FullName + "." + nameof(LocalizeMethods.I),
                 typeof(LocalizeMethods).FullName + "." + nameof(LocalizeMethods.IF),
             ];
+
+            // .net standard things that are common enough to warrant a special place in our heart.
+            invariantMethods.UnionWith(new string[]
+            {
+                "System.Text.RegularExpressions.Regex..ctor"
+            });
 
             invariantMethods.UnionWith(this.DomainSpecificInvariantMethodNames);
 

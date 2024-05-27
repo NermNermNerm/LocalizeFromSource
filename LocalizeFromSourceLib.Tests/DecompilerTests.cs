@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using LocalizeFromSource;
+using LocalizeFromSourceLib;
 using Mono.Cecil;
 using static LocalizeFromSource.DecompileCommand;
 
@@ -31,6 +32,22 @@ namespace LocalizeFromSourceLib.Tests
             Assert.IsTrue(reporter.BadStrings.Any(s => s.Contains("Should be a problem")));
         }
 
+        [TestMethod]
+        public void RespectsNoStrictAttribute()
+        {
+            Decompiler testSubject = new Decompiler();
+            string thisAssemblyPath = Assembly.GetExecutingAssembly().Location;
+            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(thisAssemblyPath, new ReaderParameters { ReadSymbols = true });
+            var decompilerTestTarget = assembly.Modules.First().Types.First(t => t.Name == nameof(DecompilerTests)).Methods.First(t => t.Name == nameof(NoStrictOverrideTestTarget));
+            var reporter = new StubReporter();
+            var compiler = new SdvTranslationCompiler();
+
+            testSubject.FindLocalizableStrings(decompilerTestTarget, reporter, compiler.GetInvariantMethodNames(assembly));
+            Assert.AreEqual(1, reporter.LocalizableStrings.Count);
+            Assert.IsTrue(reporter.LocalizableStrings.Any(s => s.localizedString == "should be found"));
+            Assert.AreEqual(0, reporter.BadStrings.Count);
+        }
+
         public void DecompilerTestTarget()
         {
             new StardewValley.GameLocation().playSound("ignored");
@@ -40,6 +57,13 @@ namespace LocalizeFromSourceLib.Tests
             Console.WriteLine(LocalizeMethods.LF($"should be found{Environment.NewLine}"));
             this.InvariantByAttribute("ignored");
             Console.WriteLine("Should be a problem");
+        }
+
+        [NoStrict]
+        public void NoStrictOverrideTestTarget()
+        {
+            Console.WriteLine("normally this would be a problem.");
+            Console.WriteLine(LocalizeMethods.L("should be found"));
         }
     }
 

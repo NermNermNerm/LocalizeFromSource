@@ -263,13 +263,14 @@ namespace LocalizeFromSource
         private static readonly Regex hexSixPattern = new Regex(@"[0-9a-f]{6}", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         protected override IEnumerable<string> DomainSpecificInvariantMethodNames => [
-                "StardewModdingAPI.IAssetName.IsEquivalentTo",
-                "StardewModdingAPI.IAssetName.IsEquivalentTo",
-                "StardewModdingAPI.IAssetName.StartsWith",
-                "StardewModdingAPI.IAssetName.IsDirectlyUnderPath",
-                "StardewValley.GameLocation.playSound",
-                "Netcode.NetFields.AddField",
-            ];
+            "StardewModdingAPI.IAssetName.IsEquivalentTo",
+            "StardewModdingAPI.IAssetName.IsEquivalentTo",
+            "StardewModdingAPI.IAssetName.StartsWith",
+            "StardewModdingAPI.IAssetName.IsDirectlyUnderPath",
+            "StardewValley.GameLocation.playSound",
+            "Netcode.NetFields.AddField",
+            "StardewModdingAPI.Events.AssetRequestedEventArgs.LoadFromModFile"
+        ];
 
         private int GetMaxKey(IEnumerable<string> keys)
         {
