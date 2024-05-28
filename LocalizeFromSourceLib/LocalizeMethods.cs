@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 namespace LocalizeFromSourceLib
@@ -49,7 +50,6 @@ namespace LocalizeFromSourceLib
         ///   in your code that your use of the string does not need to be localized and it was not an
         ///   oversight.
         /// </summary>
-
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static string IF(FormattableString stringInSourceLocale)
             => FormattableString.Invariant(stringInSourceLocale);

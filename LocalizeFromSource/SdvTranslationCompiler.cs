@@ -181,6 +181,15 @@ namespace LocalizeFromSource
                     }
                 }
 
+                foreach (var untranslatedString in discoveredStrings)
+                {
+                    string key = newStringToKeyDict[untranslatedString.localizedString];
+                    if (!translations.ContainsKey(key) && !newEdits.ContainsKey(key))
+                    {
+                        newEdits.Add(key, new TranslationEdit(null, untranslatedString.localizedString, null, null));
+                    }
+                }
+
                 if (!verifyOnly)
                 {
                     WriteJsonDictionary(translationPath, translations, keySortOrderFunction);
