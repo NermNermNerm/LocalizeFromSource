@@ -19,7 +19,7 @@ namespace LocalizeFromSource
                 throw new JsonException("Null regular expressions are not allowed"); /* Seems like it should be able to supply line and file, but how?? */
             }
 
-            return new Regex(s, RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            return new Regex(s, RegexOptions.Compiled | RegexOptions.CultureInvariant);
         }
 
         public override void Write(Utf8JsonWriter writer, Regex value, JsonSerializerOptions options)

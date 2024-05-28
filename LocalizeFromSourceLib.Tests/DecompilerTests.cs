@@ -15,40 +15,44 @@ namespace LocalizeFromSourceLib.Tests
     [TestClass]
     public class DecompilerTests
     {
-        private Config defaultConfig = new Config(true, Array.Empty<Regex>(), Array.Empty<string>());
+        Decompiler testSubject = null!;
+        AssemblyDefinition assembly = null!;
+        StubReporter stubReporter = null!;
+        MethodDefinition decompilerTestTarget = null!;
+        MethodDefinition noStrictOverrideTestTarget = null!;
+
+        [TestInitialize]
+        public void TestInitialize()
+        {
+            Config defaultConfig = new Config(true, Array.Empty<Regex>(), Array.Empty<string>());
+            string thisAssemblyPath = Assembly.GetExecutingAssembly().Location;
+            this.assembly = AssemblyDefinition.ReadAssembly(thisAssemblyPath, new ReaderParameters { ReadSymbols = true });
+            var combinedConfig = CombinedConfig.Create(this.assembly, Environment.CurrentDirectory, defaultConfig);
+            this.testSubject = new Decompiler(combinedConfig);
+            this.stubReporter = new StubReporter();
+
+            this.decompilerTestTarget = assembly.Modules.First().Types.First(t => t.Name == nameof(DecompilerTests)).Methods.First(t => t.Name == nameof(DecompilerTestTarget));
+            this.noStrictOverrideTestTarget = assembly.Modules.First().Types.First(t => t.Name == nameof(DecompilerTests)).Methods.First(t => t.Name == nameof(NoStrictOverrideTestTarget));
+        }
 
         [TestMethod]
         public void Test1()
         {
-            Decompiler testSubject = new Decompiler();
-            string thisAssemblyPath = Assembly.GetExecutingAssembly().Location;
-            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(thisAssemblyPath, new ReaderParameters { ReadSymbols = true });
-            var decompilerTestTarget = assembly.Modules.First().Types.First(t => t.Name == nameof(DecompilerTests)).Methods.First(t => t.Name == nameof(DecompilerTestTarget));
-            var reporter = new StubReporter();
-            var compiler = new SdvTranslationCompiler();
-
-            testSubject.FindLocalizableStrings(decompilerTestTarget, reporter, compiler.GetInvariantMethodNames(assembly, defaultConfig));
-            Assert.AreEqual(2, reporter.LocalizableStrings.Count);
-            Assert.IsTrue(reporter.LocalizableStrings.Any(s => s.localizedString == "should be found"));
-            Assert.IsTrue(reporter.LocalizableStrings.Any(s => s.localizedString == "should be found{0}"));
-            Assert.AreEqual(1, reporter.BadStrings.Count);
-            Assert.IsTrue(reporter.BadStrings.Any(s => s.Contains("Should be a problem")));
+            testSubject.FindLocalizableStrings(decompilerTestTarget, this.stubReporter);
+            Assert.AreEqual(2, this.stubReporter.LocalizableStrings.Count);
+            Assert.IsTrue(this.stubReporter.LocalizableStrings.Any(s => s.localizedString == "should be found"));
+            Assert.IsTrue(this.stubReporter.LocalizableStrings.Any(s => s.localizedString == "should be found{0}"));
+            Assert.AreEqual(1, this.stubReporter.BadStrings.Count);
+            Assert.IsTrue(this.stubReporter.BadStrings.Any(s => s.Contains("Should be a problem")));
         }
 
         [TestMethod]
         public void RespectsNoStrictAttribute()
         {
-            Decompiler testSubject = new Decompiler();
-            string thisAssemblyPath = Assembly.GetExecutingAssembly().Location;
-            AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(thisAssemblyPath, new ReaderParameters { ReadSymbols = true });
-            var decompilerTestTarget = assembly.Modules.First().Types.First(t => t.Name == nameof(DecompilerTests)).Methods.First(t => t.Name == nameof(NoStrictOverrideTestTarget));
-            var reporter = new StubReporter();
-            var compiler = new SdvTranslationCompiler();
-
-            testSubject.FindLocalizableStrings(decompilerTestTarget, reporter, compiler.GetInvariantMethodNames(assembly, defaultConfig));
-            Assert.AreEqual(1, reporter.LocalizableStrings.Count);
-            Assert.IsTrue(reporter.LocalizableStrings.Any(s => s.localizedString == "should be found"));
-            Assert.AreEqual(0, reporter.BadStrings.Count);
+            testSubject.FindLocalizableStrings(this.noStrictOverrideTestTarget, this.stubReporter);
+            Assert.AreEqual(1, this.stubReporter.LocalizableStrings.Count);
+            Assert.IsTrue(this.stubReporter.LocalizableStrings.Any(s => s.localizedString == "should be found"));
+            Assert.AreEqual(0, this.stubReporter.BadStrings.Count);
         }
 
         public void DecompilerTestTarget()

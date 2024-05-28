@@ -22,12 +22,6 @@ namespace LocalizeFromSource
 
         public virtual void ReportBadString(string s, SequencePoint? sequencePoint)
         {
-            if (s == "")
-            {
-                // Empty strings don't need to be marked - they're always invariant.
-                return;
-            }
-
             if (config.InvariantStringPatterns.Any(r => r.IsMatch(s)))
             {
                 return;

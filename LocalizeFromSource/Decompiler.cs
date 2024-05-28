@@ -1,15 +1,21 @@
 ﻿using Mono.Cecil.Cil;
 using Mono.Cecil;
 using LocalizeFromSourceLib;
-using System.Text.RegularExpressions;
+using System.Diagnostics.CodeAnalysis;
 
 namespace LocalizeFromSource
 {
     public class Decompiler
     {
-        public void FindLocalizableStrings(AssemblyDefinition assembly, Reporter reporter, IReadOnlySet<string> invariantMethods)
+        private readonly CombinedConfig config;
+
+        public Decompiler(CombinedConfig config)
         {
-            var t = new Decompiler();
+            this.config = config;
+        }
+
+        public void FindLocalizableStrings(AssemblyDefinition assembly, Reporter reporter)
+        {
             foreach (var module in assembly.Modules)
             {
                 foreach (var type in module.Types)
@@ -18,7 +24,7 @@ namespace LocalizeFromSource
                     {
                         if (method.HasBody)
                         {
-                            t.FindLocalizableStrings(method, reporter, invariantMethods);
+                            this.FindLocalizableStrings(method, reporter);
                         }
                     }
 
@@ -26,11 +32,11 @@ namespace LocalizeFromSource
                     {
                         if (property.GetMethod?.HasBody == true)
                         {
-                            t.FindLocalizableStrings(property.GetMethod, reporter, invariantMethods);
+                            this.FindLocalizableStrings(property.GetMethod, reporter);
                         }
                         if (property.SetMethod?.HasBody == true)
                         {
-                            t.FindLocalizableStrings(property.SetMethod, reporter, invariantMethods);
+                            this.FindLocalizableStrings(property.SetMethod, reporter);
                         }
                         // TODO? What about the initializer?  Maybe it's part of a generated constructor?
                     }
@@ -38,7 +44,7 @@ namespace LocalizeFromSource
             }
         }
 
-        public void FindLocalizableStrings(MethodDefinition method, Reporter reporter, IReadOnlySet<string> invariantMethods)
+        public void FindLocalizableStrings(MethodDefinition method, Reporter reporter)
         {
             bool isNoStrictMode =
                 method.CustomAttributes.Any(c => c.AttributeType.FullName == typeof(NoStrictAttribute).FullName)
@@ -75,7 +81,7 @@ namespace LocalizeFromSource
                 var instruction = instructions[pc];
                 bestSequencePoint = method.DebugInformation.GetSequencePoint(instruction) ?? bestSequencePoint;
 
-                if (instruction.OpCode != OpCodes.Ldstr)
+                if (!this.IsLdStrInstruction(instruction, out string? s))
                 {
                     continue;
                 }
@@ -87,13 +93,12 @@ namespace LocalizeFromSource
 
                 var ldStrInstruction = instruction;
                 var ldStrSequencePoint = method.DebugInformation.GetSequencePoint(ldStrInstruction);
-                string s = (string)instruction.Operand;
 
                 ++pc;
                 instruction = instructions[pc];
                 bestSequencePoint = method.DebugInformation.GetSequencePoint(instruction) ?? bestSequencePoint;
                 bool foundCall = false;
-                while (pc < instructions.Count && instruction.OpCode != OpCodes.Ldstr)
+                while (pc < instructions.Count && !this.IsLdStrInstruction(instruction, out _))
                 {
                     if (this.IsCallToL(instruction))
                     {
@@ -107,7 +112,16 @@ namespace LocalizeFromSource
                         foundCall = true;
                         break;
                     }
-                    else if (this.IsCallToInvariant(instruction, invariantMethods))
+                    else if (this.IsCallToSdvEvent(instruction))
+                    {
+                        foreach (string localizableSegment in SdvLocalizations.SdvEvent(s))
+                        {
+                            reporter.ReportLocalizedString(localizableSegment, ldStrSequencePoint);
+                        }
+                        foundCall = true;
+                        break;
+                    }
+                    else if (this.IsCallToInvariant(instruction))
                     {
                         // Ignore it.
                         foundCall = true;
@@ -129,7 +143,7 @@ namespace LocalizeFromSource
                         reporter.ReportBadString(s, ldStrSequencePoint ?? bestSequencePoint);
                     }
 
-                    if (instruction.OpCode == OpCodes.Ldstr)
+                    if (this.IsLdStrInstruction(instruction, out _))
                     {
                         --pc; // back up one - the for() loop will increment this and skip the string at this instruction.
                     }
@@ -138,13 +152,33 @@ namespace LocalizeFromSource
         }
 
 
+        private bool IsLdStrInstruction(Instruction instruction, [NotNullWhen(true)] out string? loadedString)
+        {
+            if (instruction.OpCode == OpCodes.Ldstr)
+            {
+                string s = (string)instruction.Operand;
+                // If the next instruction is L() or this string doesn't match a known invariant pattern
+                if ((instruction.Next is not null && this.IsCallToL(instruction.Next)) || (s != "" && !this.config.IsKnownInvariantString(s)))
+                {
+                    loadedString = s;
+                    return true;
+                }
+            }
+
+            loadedString = null;
+            return false;
+        }
+
         private bool IsCallToL(Instruction instruction)
             => this.IsCallToLocalizeMethods(instruction, nameof(LocalizeMethods.L));
 
-        private bool IsCallToInvariant(Instruction instruction, IReadOnlySet<string> invariantMethodNames)
+        private bool IsCallToSdvEvent(Instruction instruction)
+            => this.IsCallToLocalizeMethods(instruction, nameof(LocalizeMethods.SdvEvent));
+
+        private bool IsCallToInvariant(Instruction instruction)
             => (instruction.OpCode == OpCodes.Call || instruction.OpCode == OpCodes.Callvirt || instruction.OpCode == OpCodes.Newobj)
                 && instruction.Operand is MethodReference methodRef
-                && invariantMethodNames.Contains(methodRef.DeclaringType.FullName + "." + methodRef.Name);
+                && this.config.IsMethodWithInvariantArgs(methodRef.DeclaringType.FullName + "." + methodRef.Name);
 
         private bool IsCallToLF(Instruction instruction)
             => this.IsCallToLocalizeMethods(instruction, nameof(LocalizeMethods.LF));

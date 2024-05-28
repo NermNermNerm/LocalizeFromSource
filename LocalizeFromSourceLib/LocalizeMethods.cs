@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 
 namespace LocalizeFromSourceLib
 {
@@ -45,5 +46,34 @@ namespace LocalizeFromSourceLib
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static string IF(FormattableString stringInSourceLocale)
             => FormattableString.Invariant(stringInSourceLocale);
+
+        private static readonly Regex sdvLocalizableParts = new Regex(
+            @"""(?<localizablePart>[^""]+)""", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        /// <summary>
+        ///   Localizes the strings within Stardew Valley Event code.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static string SdvEvent(FormattableString formattableString)
+        {
+            // The question is whether to do the format conversion before or after the localization pass.
+            // The risk of doing it before is that formatting it will bring in something that looks localizable.
+            // The risk of doing it after is that the localization brings in something that looks like a
+            // format argument.
+            //
+            // Realistically, neither should happen, but the thing the developer is most in control of is
+            // formatting, and so if something gets screwed up, it'll be just as likely to show itself in
+            // the source language as any other, so overall, the risk of a post-shipping bug appearing is
+            // reduced by doing the formatting first.
+            string sourceLanguageEventCode = formattableString.ToString();
+            string translated = sdvLocalizableParts.Replace(sourceLanguageEventCode, m =>
+            {
+                var localizablePart = m.Groups["localizablePart"];
+                return sourceLanguageEventCode.Substring(m.Index, localizablePart.Index - m.Index)
+                    + L(localizablePart.Value)
+                    + sourceLanguageEventCode.Substring(localizablePart.Index + localizablePart.Length, m.Index + m.Length - localizablePart.Index - localizablePart.Length);
+            });
+            return translated;
+        }
     }
 }

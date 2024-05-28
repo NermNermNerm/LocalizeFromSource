@@ -51,15 +51,15 @@ namespace LocalizeFromSource
         public override int Execute(CommandContext context, Settings settings)
         {
             string configPath = Path.Combine(settings.SourceRoot, "LocalizeFromSourceConfig.json");
-            Config? config = new Config();
+            Config? userConfig = new Config();
             if (File.Exists(configPath))
             {
                 try
                 {
-                    var options = new JsonSerializerOptions() { PropertyNameCaseInsensitive = true };
+                    var options = new JsonSerializerOptions() { PropertyNameCaseInsensitive = true, ReadCommentHandling = JsonCommentHandling.Skip };
                     options.Converters.Add(new RegexJsonConverter());
-                    config = JsonSerializer.Deserialize<Config>(File.ReadAllText(configPath), options);
-                    if (config is null)
+                    userConfig = JsonSerializer.Deserialize<Config>(File.ReadAllText(configPath), options);
+                    if (userConfig is null)
                     {
                         throw new JsonException("null is not expected");
                     }
@@ -72,19 +72,20 @@ namespace LocalizeFromSource
             }
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(settings.DllPath, new ReaderParameters { ReadSymbols = true });
 
-            SdvTranslationCompiler compiler = new SdvTranslationCompiler();
-            var decomp = new Decompiler();
-            var reporter = new Reporter(config);
-            decomp.FindLocalizableStrings(assembly, reporter, compiler.GetInvariantMethodNames(assembly, config));
+            var combinedConfig = CombinedConfig.Create(assembly, settings.SourceRoot, userConfig);
+
+            var decomp = new Decompiler(combinedConfig);
+            var reporter = new Reporter(userConfig);
+            decomp.FindLocalizableStrings(assembly, reporter);
 
             // Is this a good idea?  Should we really block the build for this?
-            if (config.IsStrict && reporter.AnyUnmarkedStringsEncountered)
+            if (userConfig.IsStrict && reporter.AnyUnmarkedStringsEncountered)
             {
                 Console.Error.WriteLine("Not generating language JSON because there are strings in the source that need to be marked localizable or not.");
                 return 1;
             }
 
-            bool completedWithNoErrors = compiler.GenerateI18nFiles(settings.SourceRoot, false, reporter.LocalizableStrings);
+            bool completedWithNoErrors = combinedConfig.TranslationCompiler.GenerateI18nFiles(settings.SourceRoot, false, reporter.LocalizableStrings);
             return completedWithNoErrors ? 0 : 1;
         }
     }
