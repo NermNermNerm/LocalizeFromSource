@@ -11,6 +11,13 @@ namespace LocalizeFromSourceLib
         internal static Translator? Translator { get; set; } = new SdvTranslator();
 
         /// <summary>
+        ///   Set this to true and strings will get tweaked before they are displayed so that it's
+        ///   easier to spot un-translated strings and increase the chances that a thing that shouldn't 
+        ///   have been translated but was will cause a visible break.
+        /// </summary>
+        public static bool DoPseudoLoc { get; set; } = false;
+
+        /// <summary>
         ///   Localizes either a string literal.
         /// </summary>
         /// <param name="stringInSourceLocale">
@@ -19,14 +26,14 @@ namespace LocalizeFromSourceLib
         /// </param>
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static string L(string stringInSourceLocale)
-            => Translator!.Translate(stringInSourceLocale);
+            => ApplyPseudo(Translator!.Translate(stringInSourceLocale));
 
         /// <summary>
         ///   Same as <see cref="L"/> except for interpolated strings.
         /// </summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static string LF(FormattableString s)
-            => string.Format(Translator!.TranslateFormatted(s.Format), s.GetArguments());
+            => ApplyPseudo(string.Format(Translator!.TranslateFormatted(s.Format), s.GetArguments()));
 
         /// <summary>
         ///   Declares that the string is invariant - just here to make it so that you can be declarative
@@ -94,6 +101,11 @@ namespace LocalizeFromSourceLib
             var splits = questString.Split('/', 5);
             string loc(string s) => s == "" ? "" : L(s);
             return $"{splits[0]}/{L(splits[1])}/{loc(splits[2])}/{loc(splits[3])}/{splits[4]}";
+        }
+
+        private static string ApplyPseudo(string s)
+        {
+            return DoPseudoLoc ? s.Replace('e', 'ê').Replace('E', 'É').Replace('a', 'ã').Replace('o', 'ö').Replace('B', 'ß') : s;
         }
     }
 }
