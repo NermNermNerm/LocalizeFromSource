@@ -41,5 +41,11 @@ namespace LocalizeFromSource
         public bool IsMethodWithInvariantArgs(string s) => this.invariantMethodNames.Contains(s);
 
         public bool IsStrict { get; }
+
+        public bool ShouldIgnore(TypeDefinition typeDefinition)
+        {
+            // TODO: make this not sdv-specific or move something into SdvTranslationCompiler
+            return typeDefinition.Name == "I18n";
+        }
     }
 }

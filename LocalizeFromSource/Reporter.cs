@@ -9,13 +9,13 @@ namespace LocalizeFromSource
 {
     public class Reporter(Config config)
     {
-        private List<DiscoveredString> discoveredStrings = new List<DiscoveredString>();
+        private Dictionary<string,DiscoveredString> discoveredStrings = new();
         private SequencePoint? lastReportSequencePoint;
 
         public bool AnyUnmarkedStringsEncountered { get; private set; }
         public bool AnyUsageErrorsEncountered { get; private set; }
 
-        public IReadOnlyCollection<DiscoveredString> LocalizableStrings => this.discoveredStrings;
+        public IReadOnlyCollection<DiscoveredString> LocalizableStrings => this.discoveredStrings.Values;
 
         private string GetPositionString(SequencePoint? sequencePoint)
             => sequencePoint is null ? "" : $"{sequencePoint.Document.Url}({sequencePoint.StartLine},{sequencePoint.StartColumn})";
@@ -51,7 +51,8 @@ namespace LocalizeFromSource
             }
             else
             {
-                discoveredStrings.Add(new DiscoveredString(s, false, sequencePoint?.Document.Url, sequencePoint?.StartLine));
+                // Consider - if it's already there, add a new line&file.
+                discoveredStrings[s] = new DiscoveredString(s, false, sequencePoint?.Document.Url, sequencePoint?.StartLine);
             }
         }
 
@@ -63,7 +64,8 @@ namespace LocalizeFromSource
             }
             else
             {
-                discoveredStrings.Add(new DiscoveredString(s, true, sequencePoint?.Document.Url, sequencePoint?.StartLine));
+                // Consider - if it's already there, add a new line&file.
+                discoveredStrings[s] = new DiscoveredString(s, true, sequencePoint?.Document.Url, sequencePoint?.StartLine);
             }
         }
 

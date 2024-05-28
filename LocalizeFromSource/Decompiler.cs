@@ -18,7 +18,7 @@ namespace LocalizeFromSource
         {
             foreach (var module in assembly.Modules)
             {
-                foreach (var type in module.Types)
+                foreach (var type in module.Types.Where(t => !this.config.ShouldIgnore(t)))
                 {
                     foreach (var method in type.Methods)
                     {
@@ -102,7 +102,7 @@ namespace LocalizeFromSource
                 {
                     if (this.IsCallToL(instruction))
                     {
-                        reporter.ReportLocalizedString(s, ldStrSequencePoint);
+                        reporter.ReportLocalizedString(s, ldStrSequencePoint ?? bestSequencePoint);
                         foundCall = true;
                         break;
                     }
@@ -116,7 +116,7 @@ namespace LocalizeFromSource
                     {
                         foreach (string localizableSegment in SdvLocalizations.SdvEvent(s))
                         {
-                            reporter.ReportLocalizedString(localizableSegment, ldStrSequencePoint);
+                            reporter.ReportLocalizedString(localizableSegment, ldStrSequencePoint ?? bestSequencePoint);
                         }
                         foundCall = true;
                         break;
