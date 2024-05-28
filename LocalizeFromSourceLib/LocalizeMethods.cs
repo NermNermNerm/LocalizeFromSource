@@ -49,6 +49,8 @@ namespace LocalizeFromSourceLib
 
         private static readonly Regex sdvLocalizableParts = new Regex(
             @"""(?<localizablePart>[^""]+)""", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        private static readonly Regex paths = new Regex(
+            @"^(\([A-Z]+\))?\w+[\./\\][\w\./\\]*\w$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         /// <summary>
         ///   Localizes the strings within Stardew Valley Event code.
@@ -69,11 +71,29 @@ namespace LocalizeFromSourceLib
             string translated = sdvLocalizableParts.Replace(sourceLanguageEventCode, m =>
             {
                 var localizablePart = m.Groups["localizablePart"];
-                return sourceLanguageEventCode.Substring(m.Index, localizablePart.Index - m.Index)
-                    + L(localizablePart.Value)
-                    + sourceLanguageEventCode.Substring(localizablePart.Index + localizablePart.Length, m.Index + m.Length - localizablePart.Index - localizablePart.Length);
+                if (paths.IsMatch(localizablePart.Value))
+                {
+                    return m.Value;
+                }
+                else
+                {
+                    return sourceLanguageEventCode.Substring(m.Index, localizablePart.Index - m.Index)
+                        + L(localizablePart.Value)
+                        + sourceLanguageEventCode.Substring(localizablePart.Index + localizablePart.Length, m.Index + m.Length - localizablePart.Index - localizablePart.Length);
+                }
             });
             return translated;
+        }
+
+        /// <summary>
+        ///   Localizes the strings within Stardew Valley Event code.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static string SdvQuest(string questString)
+        {
+            var splits = questString.Split('/', 5);
+            string loc(string s) => s == "" ? "" : L(s);
+            return $"{splits[0]}/{L(splits[1])}/{loc(splits[2])}/{loc(splits[3])}/{splits[4]}";
         }
     }
 }

@@ -20,27 +20,36 @@ namespace LocalizeFromSource
             {
                 foreach (var type in module.Types.Where(t => !this.config.ShouldIgnore(t)))
                 {
-                    foreach (var method in type.Methods)
-                    {
-                        if (method.HasBody)
-                        {
-                            this.FindLocalizableStrings(method, reporter);
-                        }
-                    }
-
-                    foreach (var property in type.Properties)
-                    {
-                        if (property.GetMethod?.HasBody == true)
-                        {
-                            this.FindLocalizableStrings(property.GetMethod, reporter);
-                        }
-                        if (property.SetMethod?.HasBody == true)
-                        {
-                            this.FindLocalizableStrings(property.SetMethod, reporter);
-                        }
-                        // TODO? What about the initializer?  Maybe it's part of a generated constructor?
-                    }
+                    this.FindLocalizableStrings(type, reporter);
                 }
+            }
+        }
+
+        public void FindLocalizableStrings(TypeDefinition type, Reporter reporter)
+        {
+            foreach (var method in type.Methods)
+            {
+                if (method.HasBody)
+                {
+                    this.FindLocalizableStrings(method, reporter);
+                }
+            }
+
+            foreach (var property in type.Properties)
+            {
+                if (property.GetMethod?.HasBody == true)
+                {
+                    this.FindLocalizableStrings(property.GetMethod, reporter);
+                }
+                if (property.SetMethod?.HasBody == true)
+                {
+                    this.FindLocalizableStrings(property.SetMethod, reporter);
+                }
+            }
+
+            foreach (var nestedType in type.NestedTypes)
+            {
+                this.FindLocalizableStrings(nestedType, reporter);
             }
         }
 
@@ -121,6 +130,15 @@ namespace LocalizeFromSource
                         foundCall = true;
                         break;
                     }
+                    else if (this.IsCallToSdvQuest(instruction))
+                    {
+                        foreach (string localizableSegment in SdvLocalizations.SdvQuest(s))
+                        {
+                            reporter.ReportLocalizedString(localizableSegment, ldStrSequencePoint ?? bestSequencePoint);
+                        }
+                        foundCall = true;
+                        break;
+                    }
                     else if (this.IsCallToInvariant(instruction))
                     {
                         // Ignore it.
@@ -174,6 +192,9 @@ namespace LocalizeFromSource
 
         private bool IsCallToSdvEvent(Instruction instruction)
             => this.IsCallToLocalizeMethods(instruction, nameof(LocalizeMethods.SdvEvent));
+
+        private bool IsCallToSdvQuest(Instruction instruction)
+            => this.IsCallToLocalizeMethods(instruction, nameof(LocalizeMethods.SdvQuest));
 
         private bool IsCallToInvariant(Instruction instruction)
             => (instruction.OpCode == OpCodes.Call || instruction.OpCode == OpCodes.Callvirt || instruction.OpCode == OpCodes.Newobj)

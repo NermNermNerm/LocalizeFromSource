@@ -1,7 +1,7 @@
 <package>
   <metadata>
     <id>LocalizeFromSource</id>
-    <version>1.0.14</version>
+    <version>1.0.17</version>
     <authors>Steve Benz</authors>
     <owners>Steve Benz</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>

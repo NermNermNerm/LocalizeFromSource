@@ -12,13 +12,40 @@ namespace LocalizeFromSource
     /// </summary>
     public static class SdvLocalizations
     {
+        // SdvEvent just pulls out all the stuff in double-quotes in the event text, then filters out things that look
+        //   like paths to assets (which is the only thing I know of that's commonly put in quotes).  There's a finite
+        //   number of commands that actually do anything localizable:
+        //
+        // speak grandpa
+        // spritetext 4
+        // textabovehead linus
+        // message
+        // end dialogue <NPC>
+        // end dialogueWarpOut <NPC>
+        // question
+        // splitspeak
+        //
+        // However, there's the risk that somebody could add a custom command that does something localizable.  The risk
+        // of overlocalizing is pretty small - hopefully localizers will be able to spot the thing that shouldn't be
+        // localized and just copy it verbatim.
+
 
         private static readonly Regex sdvLocalizableParts = new Regex(
             @"""(?<localizablePart>[^""]+)""", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
+        private static readonly Regex paths = new Regex(
+            @"^(\([A-Z]+\))?\w+[\./\\][\w\./\\]*\w$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
         public static IEnumerable<string> SdvEvent(string eventCodeInSourceLanguage)
             => sdvLocalizableParts
                 .Matches(eventCodeInSourceLanguage)
-                .Select(m => m.Groups["localizablePart"].Value);
+                .Select(m => m.Groups["localizablePart"].Value)
+                .Where(s => !paths.IsMatch(s));
+
+        public static IEnumerable<string> SdvQuest(string questString)
+        {
+            var splits = questString.Split('/', 5);
+            return splits.Skip(1).Take(3).Where(s => s != "");
+        }
     }
 }
