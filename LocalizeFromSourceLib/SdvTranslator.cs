@@ -15,13 +15,11 @@ namespace LocalizeFromSourceLib
     /// </summary>
     public class SdvTranslator : Translator
     {
-        private readonly Lazy<string?> folderPath;
         private readonly Lazy<Dictionary<string, string>?> defaultJsonReversed;
         private readonly Dictionary<string, List<Dictionary<string,string>>> translations = new();
 
         internal SdvTranslator()
         {
-            this.folderPath = new(this.GetI18nFolder);
             this.defaultJsonReversed = new(this.GetSourceLanguageReverseLookup);
         }
 
@@ -53,13 +51,7 @@ namespace LocalizeFromSourceLib
 
         private string? GetI18nFolder()
         {
-            string actualPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "i18n");
-            if (Directory.Exists(actualPath))
-            {
-                return actualPath;
-            }
-            // TODO: Delete this - just here to make life easy.
-            return @"E:\repos\LocalizeFromSource\LocalizeFromSource";
+            return Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "i18n");
         }
 
         private Dictionary<string,string>? GetSourceLanguageReverseLookup()
@@ -77,13 +69,13 @@ namespace LocalizeFromSourceLib
                 keyToSourceStringDictionary = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(defaultJsonPath));
                 if (keyToSourceStringDictionary is null)
                 {
-                    this.RaiseTranslationFilesCorrupt($"Unable to read '{defaultJsonPath}' - translation will not work.  The file contains null.");
+                    RaiseTranslationFilesCorrupt($"Unable to read '{defaultJsonPath}' - translation will not work.  The file contains null.");
                     return null;
                 }
             }
             catch (Exception ex)
             {
-                this.RaiseTranslationFilesCorrupt($"Unable to read '{defaultJsonPath}' - translation will not work.  Error was: {ex}");
+                RaiseTranslationFilesCorrupt($"Unable to read '{defaultJsonPath}' - translation will not work.  Error was: {ex}");
                 return null;
             }
 
@@ -92,7 +84,7 @@ namespace LocalizeFromSourceLib
             {
                 if (reverseLookup.ContainsKey(pair.Value))
                 {
-                    this.RaiseBadTranslation($"{defaultJsonPath} was not built by this compiler!  It has multiple keys with the same translation key: {pair.Key} value: '{pair.Value}'.  Translations of this string will not yield accurate results.");
+                    RaiseTranslationFilesCorrupt($"{defaultJsonPath} was not built by this compiler!  It has multiple keys with the same translation key: {pair.Key} value: '{pair.Value}'.  Translations of this string will not yield accurate results.");
                 }
                 else
                 {
@@ -134,7 +126,7 @@ namespace LocalizeFromSourceLib
                         var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(translationPath));
                         if (dict is null)
                         {
-                            this.RaiseTranslationFilesCorrupt($"{translationPath} has null contents");
+                            RaiseTranslationFilesCorrupt($"{translationPath} has null contents");
                         }
                         else
                         {
@@ -143,7 +135,7 @@ namespace LocalizeFromSourceLib
                     }
                     catch (Exception ex)
                     {
-                        this.RaiseTranslationFilesCorrupt($"{translationPath} cannot be read: {ex}");
+                        RaiseTranslationFilesCorrupt($"{translationPath} cannot be read: {ex}");
                     }
                 }
 
@@ -185,7 +177,7 @@ namespace LocalizeFromSourceLib
 
             if (!reverseLookup.TryGetValue(stringInSourceLocale, out string? key))
             {
-                this.RaiseBadTranslation($"The following string is not in the default.json: '{stringInSourceLocale}'");
+                RaiseTranslationFilesCorrupt($"The following string is not in the default.json: '{stringInSourceLocale}'");
                 return stringInSourceLocale;
             }
 
@@ -198,7 +190,7 @@ namespace LocalizeFromSourceLib
                 }
             }
 
-            this.RaiseBadTranslation($"The following string does not have a translation in {currentLocale}: '{stringInSourceLocale}'");
+            RaiseBadTranslation($"The following string does not have a translation in {currentLocale}: '{stringInSourceLocale}'");
             return stringInSourceLocale;
         }
     }

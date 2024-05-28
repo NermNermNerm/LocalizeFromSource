@@ -17,29 +17,28 @@
         /// </summary>
         public abstract string TranslateFormatted(string formatStringInSourceLocale);
 
-
         /// <summary>
         ///   Raised when there is something wrong with the translation files that will prevent it from working in
         ///   any language other than the source.  The argument is a string containing the nature of the fault.
         /// </summary>
-        public event Action<string>? OnTranslationFilesCorrupt;
+        public static event Action<string>? OnTranslationFilesCorrupt;
 
         /// <summary>
         ///   Raised when there is something wrong with the particular target language or some of the translations
         ///   within the language.
         /// </summary>
-        public event Action<string>? OnBadTranslation;
+        public static event Action<string>? OnBadTranslation;
 
         /// <summary>
         ///   Raises <see cref="OnTranslationFilesCorrupt"/>.
         /// </summary>
-        protected void RaiseTranslationFilesCorrupt(string error)
-            => this.OnTranslationFilesCorrupt?.Invoke(error);
+        protected static void RaiseTranslationFilesCorrupt(string error)
+            => OnTranslationFilesCorrupt?.Invoke(error);
 
         /// <summary>
         ///   Raises <see cref="OnBadTranslation"/>.
         /// </summary>
-        protected void RaiseBadTranslation(string warning)
-            => this.OnBadTranslation?.Invoke(warning);
+        protected static void RaiseBadTranslation(string warning)
+            => OnBadTranslation?.Invoke(warning);
     }
 }
