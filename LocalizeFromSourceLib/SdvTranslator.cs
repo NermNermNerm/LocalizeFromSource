@@ -163,6 +163,17 @@ namespace LocalizeFromSourceLib
             }
 
             string currentLocale = GetLocale();
+            if (currentLocale == "")
+            {
+                // SDV sets the locale kinda midway through the loading process - or at least not at the very start.
+                //  Some mod assets just get loaded earlier than that, and so you have to force them to be loaded again,
+                //  after the locale is set.  That's a known problem (at least since 1.6).  See TractorMod as an example.
+                //  It has a LocaleChanged event handler that reloads the one thing that it knows gets loaded before
+                //  the locale is set.  Mods that use this will have to do the same...  In fact, mods that don't use this
+                //  library will have to do the same, as the issue is with the game.
+                return stringInSourceLocale;
+            }
+
             if (reverseLookup is null)
             {
                 // Not throwing a InvalidOperation here because it could be a mod-deployment problem rather than a code fault.
