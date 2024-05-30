@@ -1,5 +1,8 @@
+using System.Reflection;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using LocalizeFromSource;
+using Mono.Cecil;
 
 namespace LocalizeFromSourceLib.Tests
 {
@@ -8,6 +11,8 @@ namespace LocalizeFromSourceLib.Tests
     {
         private const string TestFolderName = "ut1";
         private string i18nFolder = null!;
+
+        private TestableSdvTranslationCompiler testSubject = null!;
 
         [TestInitialize]
         public void Initialize()
@@ -19,6 +24,12 @@ namespace LocalizeFromSourceLib.Tests
             Directory.CreateDirectory(TestFolderName);
 
             this.i18nFolder = Path.Combine(Environment.CurrentDirectory, TestFolderName, "i18n");
+
+            Config defaultConfig = new Config(true, Array.Empty<Regex>(), Array.Empty<string>());
+            string thisAssemblyPath = Assembly.GetExecutingAssembly().Location;
+            var assembly = AssemblyDefinition.ReadAssembly(thisAssemblyPath, new ReaderParameters { ReadSymbols = true });
+            var combinedConfig = CombinedConfig.Create(assembly, Environment.CurrentDirectory, defaultConfig);
+            this.testSubject = new TestableSdvTranslationCompiler(combinedConfig);
         }
 
         [TestCleanup]
@@ -27,14 +38,30 @@ namespace LocalizeFromSourceLib.Tests
             Directory.Delete(TestFolderName, true);
         }
 
+        private T ReadJson<T>(string filename)
+        {
+            var result = JsonSerializer.Deserialize<T>(
+                File.ReadAllText(Path.Combine(i18nFolder, filename)),
+                new JsonSerializerOptions { ReadCommentHandling = JsonCommentHandling.Skip });
+            Assert.IsNotNull(result);
+            return result!;
+        }
+
+        private Dictionary<string, string> ReadDefaultJson()
+            => this.ReadJson<Dictionary<string, string>>("default.json");
+
+        private Dictionary<string, string> ReadDeJson()
+            => this.ReadJson<Dictionary<string, string>>("de.json");
+
+        private Dictionary<string, string> ReadDeEditsJson()
+            => this.ReadJson<Dictionary<string, string>>("de.edits.json");
+
         [TestMethod]
         public void BasicDefaultJsonTests()
         {
-            SdvTranslationCompiler testSubject = new SdvTranslationCompiler();
-
             // Starts from nothing
             testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [new DiscoveredString("one two three", false, "test", 57)]);
-            var defaultJson = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(i18nFolder, "default.json")));
+            var defaultJson = this.ReadDefaultJson();
             Assert.AreEqual(1, defaultJson!.Count);
             Assert.AreEqual("one two three", defaultJson["000001"]);
 
@@ -43,7 +70,7 @@ namespace LocalizeFromSourceLib.Tests
                 new DiscoveredString("one two three", false, "test", 57),
                 new DiscoveredString("a b c", false, "test", 67),
                 ]);
-            defaultJson = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(i18nFolder, "default.json")));
+            defaultJson = this.ReadJson<Dictionary<string, string>>(Path.Combine(i18nFolder, "default.json"));
             Assert.AreEqual(2, defaultJson!.Count);
             Assert.AreEqual("one two three", defaultJson["000001"]);
             Assert.AreEqual("a b c", defaultJson["000002"]);
@@ -53,7 +80,7 @@ namespace LocalizeFromSourceLib.Tests
                 new DiscoveredString("one two four", false, "test", 57),
                 new DiscoveredString("a b c", false, "test", 67),
                 ]);
-            defaultJson = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(i18nFolder, "default.json")));
+            defaultJson = this.ReadDefaultJson();
             Assert.AreEqual(2, defaultJson!.Count);
             Assert.AreEqual("one two four", defaultJson["000001"]);
             Assert.AreEqual("a b c", defaultJson["000002"]);
@@ -63,11 +90,8 @@ namespace LocalizeFromSourceLib.Tests
         [TestMethod]
         public void TranslationTests()
         {
-            string defaultJsonPath = Path.Combine(i18nFolder, "default.json");
             string deJsonPath = Path.Combine(i18nFolder, "de.json");
             string deEditsJsonPath = TranslationEdit.MakePath(i18nFolder, "de");
-
-            var testSubject = new TestableSdvTranslationCompiler();
 
             // Add some source language stuff - do it in two passes to guarantee key order for testing purposes
             testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
@@ -77,7 +101,7 @@ namespace LocalizeFromSourceLib.Tests
                 new DiscoveredString("one two three", false, "test", 57),
                 new DiscoveredString("count me in", false, "test", 59)
                 ]);
-            var defaultJson = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(defaultJsonPath));
+            var defaultJson = this.ReadDefaultJson();
             Assert.AreEqual(2, defaultJson!.Count);
             Assert.AreEqual("one two three", defaultJson["000001"]);
             Assert.AreEqual("count me in", defaultJson["000002"]);
@@ -116,15 +140,15 @@ namespace LocalizeFromSourceLib.Tests
             Assert.AreEqual(edits["000003"].oldTarget, null);
             Assert.AreEqual(edits["000003"].newSource, "I added a new thang");
             Assert.AreEqual(edits["000003"].newTarget, null);
-            var deTranslation = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(deJsonPath));
+            var deTranslation = this.ReadDeJson();
             Assert.AreEqual(1, deTranslation!.Count);
             Assert.AreEqual("eins zwei drei", deTranslation["000001"]);
 
             // German translator updates the 'count me in' translation but sees the 'thang' spelling error and ignores that one.
             File.WriteAllText(deEditsJsonPath, JsonSerializer.Serialize(new Dictionary<string, TranslationEdit>()
             {
-                { "000002", new TranslationEdit(oldSource: "count me in", oldTarget: "ich bin dabei", newSource: "count me in!", newTarget: "ich bin dabei!") },
-                { "000003", new TranslationEdit(oldSource: null, oldTarget: null, newSource: "I added a new thang", newTarget: null) }
+                { "000002", edits["000002"] with { newTarget = "ich bin dabei!" } },
+                { "000003", edits["000003"] }
             }));
             testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
                 new DiscoveredString("one two three", false, "test", 57),
@@ -138,7 +162,7 @@ namespace LocalizeFromSourceLib.Tests
             Assert.AreEqual(edits["000003"].oldTarget, null);
             Assert.AreEqual(edits["000003"].newSource, "I added a new thang");
             Assert.AreEqual(edits["000003"].newTarget, null);
-            deTranslation = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(deJsonPath));
+            deTranslation = this.ReadDeJson();
             Assert.AreEqual(2, deTranslation!.Count);
             Assert.AreEqual("eins zwei drei", deTranslation["000001"]);
             Assert.AreEqual("ich bin dabei!", deTranslation["000002"]);
@@ -146,14 +170,14 @@ namespace LocalizeFromSourceLib.Tests
             // German translator gets creative and fixes that thang.
             File.WriteAllText(deEditsJsonPath, JsonSerializer.Serialize(new Dictionary<string, TranslationEdit>()
             {
-                { "000003", new TranslationEdit(oldSource: null, oldTarget: null, newSource: "I added a new thing", newTarget: "Ich habe etwas Neues hinzugefügt") }
+                { "000003", edits["000003"] with { newSource = "I added a new thing", newTarget = "Ich habe etwas Neues hinzugefügt" } }
             }));
             testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
                 new DiscoveredString("one two three", false, "test", 57),
                 new DiscoveredString("count me in!", false, "test", 59),
                 new DiscoveredString("I added a new thing", false, "test", 61)
                 ]);
-            deTranslation = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(deJsonPath));
+            deTranslation = this.ReadDeJson();
             Assert.IsFalse(File.Exists(deEditsJsonPath));
             Assert.AreEqual(3, deTranslation!.Count);
             Assert.AreEqual("eins zwei drei", deTranslation["000001"]);
@@ -172,7 +196,7 @@ namespace LocalizeFromSourceLib.Tests
             Assert.AreEqual(edits["000001"].oldTarget, "eins zwei drei");
             Assert.AreEqual(edits["000001"].newSource, "one two three five");
             Assert.AreEqual(edits["000001"].newTarget, null);
-            deTranslation = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(deJsonPath));
+            deTranslation = this.ReadDeJson();
             Assert.AreEqual(2, deTranslation!.Count);
             Assert.AreEqual("ich bin dabei!", deTranslation["000002"]);
             Assert.AreEqual("Ich habe etwas Neues hinzugefügt", deTranslation["000003"]);
@@ -189,7 +213,7 @@ namespace LocalizeFromSourceLib.Tests
             Assert.AreEqual(edits["000001"].oldTarget, "eins zwei drei");
             Assert.AreEqual(edits["000001"].newSource, "one two three four");
             Assert.AreEqual(edits["000001"].newTarget, null);
-            deTranslation = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(deJsonPath));
+            deTranslation = this.ReadDeJson();
             Assert.AreEqual(2, deTranslation!.Count);
             Assert.AreEqual("ich bin dabei!", deTranslation["000002"]);
             Assert.AreEqual("Ich habe etwas Neues hinzugefügt", deTranslation["000003"]);

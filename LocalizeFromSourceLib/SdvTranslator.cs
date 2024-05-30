@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
+﻿using System.Globalization;
 using System.Reflection;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace LocalizeFromSourceLib
 {
@@ -33,7 +28,6 @@ namespace LocalizeFromSourceLib
         ///   It simply prevents getting "missing translation" events for your source language.
         /// </summary>
         public static string SourceLocale { get; set; } = "en-us";
-
 
         /// <inheritDoc/>
         public override string Translate(string stringInSourceLocale)

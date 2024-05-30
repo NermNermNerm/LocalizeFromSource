@@ -10,6 +10,8 @@ namespace LocalizeFromSourceLib.Tests
     public class TestableSdvTranslationCompiler
         : SdvTranslationCompiler
     {
+        public TestableSdvTranslationCompiler(CombinedConfig config) : base(config) { }
+
         public List<string> Errors { get; } = new List<string>();
 
         protected override void Error(int id, string message)

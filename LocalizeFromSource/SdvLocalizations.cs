@@ -47,5 +47,18 @@ namespace LocalizeFromSource
             var splits = questString.Split('/', 5);
             return splits.Skip(1).Take(3).Where(s => s != "");
         }
+
+        public static IEnumerable<string> DomainSpecificInvariantMethodNames => [
+            "StardewModdingAPI.IAssetName.IsEquivalentTo",
+            "StardewModdingAPI.IAssetName.IsEquivalentTo",
+            "StardewModdingAPI.IAssetName.StartsWith",
+            "StardewModdingAPI.IAssetName.IsDirectlyUnderPath",
+            "StardewValley.Farmer.getFriendshipHeartLevelForNPC",
+            "StardewValley.Game1.playSound",
+            "StardewValley.GameLocation.playSound",
+            "Netcode.NetFields.AddField",
+            "StardewModdingAPI.Events.AssetRequestedEventArgs.LoadFromModFile"
+];
+
     }
 }
