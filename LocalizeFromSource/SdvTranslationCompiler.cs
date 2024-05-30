@@ -148,13 +148,11 @@ namespace LocalizeFromSource
                 var newEdits = new Dictionary<string, TranslationEdit>();
                 foreach (var edit in matchedStringChanges)
                 {
-                    int? line = null;
-                    string? relativePath = null;
+                    Uri? link = null;
                     if (edit.newString is not null)
                     {
                         var discoveredString = foundStringMap[edit.newString];
-                        line = discoveredString.line;
-                        relativePath = discoveredString.file is null ? null : this.config.MakeRelative(discoveredString.file);
+                        link = this.config.TryMakeGithubLink(discoveredString.file, discoveredString.line);
                     }
 
 
@@ -163,7 +161,7 @@ namespace LocalizeFromSource
                         // We added a new thing to translate.
                         newEdits.Add(
                             newStringToKeyDict[edit.newString],
-                            new TranslationEdit(oldSource: null, newSource: edit.newString, oldTarget: null, newTarget: null, line: line, relativePath: relativePath));
+                            new TranslationEdit(oldSource: null, newSource: edit.newString, oldTarget: null, newTarget: null, link: link));
                         // No need to check for an old translation edit, this string is new.
                     }
                     else if (edit.deletedString is not null && edit.newString is not null)
@@ -187,7 +185,7 @@ namespace LocalizeFromSource
                             }
                             newEdits.Add(
                                 key,
-                                new TranslationEdit(oldSource: oldSource, newSource: edit.newString, oldTarget: oldTranslatedValue, newTarget: null, line: line, relativePath: relativePath));
+                                new TranslationEdit(oldSource: oldSource, newSource: edit.newString, oldTarget: oldTranslatedValue, newTarget: null, link: link));
                             translations.Remove(key);
                         }
                     }
@@ -204,12 +202,12 @@ namespace LocalizeFromSource
 
                 foreach (var untranslatedString in discoveredStrings)
                 {
-                    string? relativePath = untranslatedString.file is null ? null : this.config.MakeRelative(untranslatedString.file);
+                    Uri? link = this.config.TryMakeGithubLink(untranslatedString.file, untranslatedString.line);
 
                     string key = newStringToKeyDict[untranslatedString.localizedString];
                     if (!translations.ContainsKey(key) && !newEdits.ContainsKey(key))
                     {
-                        newEdits.Add(key, new TranslationEdit(null, untranslatedString.localizedString, null, null, line: untranslatedString.line, relativePath: relativePath));
+                        newEdits.Add(key, new TranslationEdit(null, untranslatedString.localizedString, null, null, link));
                     }
                 }
 

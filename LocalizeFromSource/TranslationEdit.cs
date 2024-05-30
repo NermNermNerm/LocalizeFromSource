@@ -1,10 +1,9 @@
 ﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace LocalizeFromSource
 {
-    // TODO: Add line&file for the source.
-
-    public record TranslationEdit(string? oldSource, string newSource, string? oldTarget, string? newTarget, int? line, string? relativePath)
+    public record TranslationEdit(string? oldSource, string newSource, string? oldTarget, string? newTarget, Uri? link)
     {
         public static string MakePath(string folder, string localeId)
             => Path.Combine(folder, localeId + ".edits.json");
