@@ -191,10 +191,10 @@ namespace LocalizeFromSource
             => this.IsCallToLocalizeMethods(instruction, nameof(LocalizeMethods.L));
 
         private bool IsCallToSdvEvent(Instruction instruction)
-            => this.IsCallToLocalizeMethods(instruction, nameof(LocalizeMethods.SdvEvent));
+            => this.IsCallToLocalizeMethods(instruction, nameof(SdvLocalizeMethods.SdvEvent));
 
         private bool IsCallToSdvQuest(Instruction instruction)
-            => this.IsCallToLocalizeMethods(instruction, nameof(LocalizeMethods.SdvQuest));
+            => this.IsCallToLocalizeMethods(instruction, nameof(SdvLocalizeMethods.SdvQuest));
 
         private bool IsCallToInvariant(Instruction instruction)
             => (instruction.OpCode == OpCodes.Call || instruction.OpCode == OpCodes.Callvirt || instruction.OpCode == OpCodes.Newobj)

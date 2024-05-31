@@ -5,14 +5,13 @@ namespace LocalizeFromSourceLib
     /// <summary>
     ///   Localization methods.
     /// </summary>
-    public static class LocalizeMethods
+    public class LocalizeMethods
     {
-        // Architecturally, this class should simply be a static wrapper around Translator.
+        internal static Translator? Translator { get; set; }
 
-        // If we ever progress beyond SDV, this should be set by an initialization method and each static method should
-        //  have a 'if null throw InvalidOperationException' in it.
-
-        internal static Translator? Translator { get; set; } = new SdvTranslator();
+        /// <summary>Gets <see cref="Translator"/> and throws if it's null.</summary>
+        protected static Translator EnsureTranslator()
+            => Translator ?? throw new InvalidOperationException("The translation type has not been specified yet - it looks like translations are being requested before localization setup has happened.");
 
         /// <summary>
         ///   Set this to true and strings will get tweaked before they are displayed so that it's
@@ -21,8 +20,8 @@ namespace LocalizeFromSourceLib
         /// </summary>
         public static bool DoPseudoLoc
         {
-            get => Translator!.DoPseudoLoc;
-            set => Translator!.DoPseudoLoc = value;
+            get => EnsureTranslator().DoPseudoLoc;
+            set => EnsureTranslator().DoPseudoLoc = value;
         }
 
         /// <summary>
@@ -34,14 +33,14 @@ namespace LocalizeFromSourceLib
         /// </param>
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static string L(string stringInSourceLocale)
-            => Translator!.Translate(stringInSourceLocale);
+            => EnsureTranslator().Translate(stringInSourceLocale);
 
         /// <summary>
         ///   Same as <see cref="L"/> except for interpolated strings.
         /// </summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static string LF(FormattableString s)
-            => Translator!.TranslateFormatted(s);
+            => EnsureTranslator().TranslateFormatted(s);
 
         /// <summary>
         ///   Declares that the string is invariant - just here to make it so that you can be declarative
@@ -61,23 +60,30 @@ namespace LocalizeFromSourceLib
         public static string IF(FormattableString stringInSourceLocale)
             => FormattableString.Invariant(stringInSourceLocale);
 
-
-        // Post sdv-is-the-only-thing, perhaps this should move into its own class?  It seems
-        //  bad to ask the user to have two.  Perhaps there could be a 'SdvLocalizeMethods' that
-        //  extends this class with these two, that way there'd only be the one...
+        /// <summary>
+        ///   Raised when there is something wrong with the translation files that will prevent it from working in
+        ///   any language other than the source.  The argument is a string containing the nature of the fault.
+        /// </summary>
+        public static event Action<string>? OnTranslationFilesCorrupt;
 
         /// <summary>
-        ///   Localizes the strings within Stardew Valley Event code.
+        ///   Raised when there is something wrong with the particular target language or some of the translations
+        ///   within the language.
         /// </summary>
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static string SdvEvent(FormattableString formattableString)
-            => ((SdvTranslator)Translator!).SdvEvent(formattableString);
+        public static event Action<string>? OnBadTranslation;
 
         /// <summary>
-        ///   Localizes the strings within Stardew Valley Event code.
+        ///   Raises <see cref="OnTranslationFilesCorrupt"/>.
         /// </summary>
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static string SdvQuest(string questString)
-            => ((SdvTranslator)Translator!).SdvQuest(questString);
+        /// <remarks>Test classes can override this to validate that these events are generated without having to touch a static.</remarks>
+        internal static void RaiseTranslationFilesCorrupt(string error)
+            => OnTranslationFilesCorrupt?.Invoke(error);
+
+        /// <summary>
+        ///   Raises <see cref="OnBadTranslation"/>.
+        /// </summary>
+        /// <remarks>Test classes can override this to validate that these events are generated without having to touch a static.</remarks>
+        internal static void RaiseBadTranslation(string warning)
+            => OnBadTranslation?.Invoke(warning);
     }
 }

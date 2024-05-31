@@ -11,6 +11,7 @@ namespace LocalizeFromSourceLib.Tests
     {
         private const string TestFolderName = "ut1";
         private string i18nFolder = null!;
+        private string locale = "en";
 
         private TestableSdvTranslationCompiler testSubject = null!;
         private TestableSdvTranslator translator = null!;
@@ -31,7 +32,7 @@ namespace LocalizeFromSourceLib.Tests
             var assembly = AssemblyDefinition.ReadAssembly(thisAssemblyPath, new ReaderParameters { ReadSymbols = true });
             var combinedConfig = CombinedConfig.Create(assembly, Environment.CurrentDirectory, defaultConfig);
             this.testSubject = new TestableSdvTranslationCompiler(combinedConfig);
-            this.translator = new TestableSdvTranslator(this.i18nFolder);
+            this.translator = new TestableSdvTranslator(this.i18nFolder, () => this.locale);
         }
 
         [TestCleanup]
@@ -113,7 +114,7 @@ namespace LocalizeFromSourceLib.Tests
 
             WriteDeJson(new Dictionary<string, string>() { { "000001", "ein {2}, {1}, {0} fin" } });
 
-            SdvTranslator.GetLocale = () => "de-de";
+            this.locale = "de-de";
             string translation = this.translator.TranslateFormatted($"one {"a"}, {"b"}, and {"c"}");
             Assert.AreEqual("ein c, b, a fin", translation);
         }

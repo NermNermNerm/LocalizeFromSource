@@ -11,7 +11,8 @@ namespace LocalizeFromSourceLib.Tests
     {
         private readonly string i18nFolder;
 
-        public TestableSdvTranslator(string i18nFolder)
+        public TestableSdvTranslator(string i18nFolder, Func<string> localeGetter, string sourceLocale = "en-us")
+            : base(localeGetter, sourceLocale)
         {
             this.i18nFolder = i18nFolder;
         }

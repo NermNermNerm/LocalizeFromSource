@@ -1,6 +1,5 @@
 ﻿using System.Globalization;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -11,6 +10,8 @@ namespace LocalizeFromSourceLib
     /// </summary>
     public class SdvTranslator : Translator
     {
+        private readonly Func<string> localeGetter;
+        private readonly string sourceLocale;
         private readonly Lazy<Dictionary<string, string>?> defaultJsonReversed;
         private readonly Dictionary<string, List<Dictionary<string,string>>> translations = new();
 
@@ -19,21 +20,12 @@ namespace LocalizeFromSourceLib
         /// <summary>
         ///   Constructor for test overrides.
         /// </summary>
-        internal protected SdvTranslator()
+        internal protected SdvTranslator(Func<string> localeGetter, string sourceLocale = "en-us")
         {
             this.defaultJsonReversed = new(this.GetSourceLanguageReverseLookup);
+            this.localeGetter = localeGetter;
+            this.sourceLocale = sourceLocale;
         }
-
-        /// <summary>
-        ///   This should be set in ModEntry to <code>() =&gt; helper.Translation.Locale</code>.
-        /// </summary>
-        public static Func<string>? GetLocale { get; set; } = null;
-
-        /// <summary>
-        ///   This should be set in ModEntry to the language that default.json is written in.
-        ///   It simply prevents getting "missing translation" events for your source language.
-        /// </summary>
-        public static string SourceLocale { get; set; } = "en-us";
 
         /// <inheritDoc/>
         protected override string GetTranslationOfFormatString(string formatStringInSourceLocale)
@@ -157,13 +149,13 @@ namespace LocalizeFromSourceLib
         protected override string GetTranslation(string stringInSourceLocale)
         {
             var reverseLookup = defaultJsonReversed.Value;
-            if (GetLocale is null)
+            if (localeGetter is null)
             {
                 // This is the exception to the "translations never throw" claim of LocalizeMethods - because it indicates a code fault, not a translation error.
                 throw new InvalidOperationException("LocalizeFromSourceLib requires you to set SdvTranslator.GetLocale to '() => helper.Translation.Locale' in ModEntry.  If you're doing that and you're still getting this error then perhaps you have a static initializer that's asking for a translated value.  That's not a good idea - the locale can change during gameplay.");
             }
 
-            string currentLocale = GetLocale();
+            string currentLocale = localeGetter();
             if (currentLocale == "")
             {
                 // SDV sets the locale kinda midway through the loading process - or at least not at the very start.
@@ -182,7 +174,7 @@ namespace LocalizeFromSourceLib
                 return stringInSourceLocale;
             }
 
-            if (currentLocale.Equals(SourceLocale, StringComparison.OrdinalIgnoreCase))
+            if (currentLocale.Equals(sourceLocale, StringComparison.OrdinalIgnoreCase))
             {
                 return stringInSourceLocale;
             }
