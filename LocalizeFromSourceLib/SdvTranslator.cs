@@ -30,12 +30,10 @@ namespace LocalizeFromSourceLib
         /// <inheritDoc/>
         protected override string GetTranslationOfFormatString(string formatStringInSourceLocale)
         {
-            var translation = this.GetTranslation(formatStringInSourceLocale);
-            int counter = 0;
-            return formatRegex.Replace(translation, m => counter++.ToString(CultureInfo.InvariantCulture));
+            string sourceLanguageFormatString = TransformCSharpFormatStringToSdvFormatString(formatStringInSourceLocale);
+            var targetLanguageFormatString = this.GetTranslation(sourceLanguageFormatString);
+            return TransformSdvFormatStringToCSharpFormatString(targetLanguageFormatString, sourceLanguageFormatString);
         }
-
-        private static readonly Regex formatRegex = new Regex(@"{{\w+(?<fmt>:[^}]+)}}", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         /// <summary>
         ///   Gets the folder containing the SDV localization files.
@@ -149,12 +147,6 @@ namespace LocalizeFromSourceLib
         protected override string GetTranslation(string stringInSourceLocale)
         {
             var reverseLookup = defaultJsonReversed.Value;
-            if (localeGetter is null)
-            {
-                // This is the exception to the "translations never throw" claim of LocalizeMethods - because it indicates a code fault, not a translation error.
-                throw new InvalidOperationException("LocalizeFromSourceLib requires you to set SdvTranslator.GetLocale to '() => helper.Translation.Locale' in ModEntry.  If you're doing that and you're still getting this error then perhaps you have a static initializer that's asking for a translated value.  That's not a good idea - the locale can change during gameplay.");
-            }
-
             string currentLocale = localeGetter();
             if (currentLocale == "")
             {
@@ -244,5 +236,59 @@ namespace LocalizeFromSourceLib
             string loc(string s) => s == "" ? "" : this.GetTranslation(s);
             return $"{splits[0]}/{this.GetTranslation(splits[1])}/{loc(splits[2])}/{loc(splits[3])}/{splits[4]}";
         }
+
+        private static readonly Regex dotnetFormatStringPattern = new(@"{(?<argNumber>\d+)(?<formatSpecifier>:[^}]+)?}(\|(?<argName>\w+)\|)?", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+        private static readonly Regex sdvFormatStringPattern = new Regex(@"{{(?<argName>\w+)(?<formatSpecifier>:[^}]+)?}}", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+
+        /// <summary>
+        ///   Converts a string like "yow {0} ee" to "yow {{arg0}} ee"
+        /// </summary>
+        public static string TransformCSharpFormatStringToSdvFormatString(string csharpFormatString)
+        {
+            // Not done - validity checking
+            //  given names do not conflict or repeat - e.g. "foo {0}|a| bar {0}|b|"  "foo {0}|a| bar {1}|a|"
+            return dotnetFormatStringPattern.Replace(csharpFormatString, (m) =>
+            {
+                var number = m.Groups["argNumber"].Value;
+
+                string givenName = m.Groups["argName"].Value;
+                var name = string.IsNullOrEmpty(givenName) ? ("arg" + number) : givenName;
+                var fmtSpecifier = m.Groups["formatSpecifier"].Value; // note - includes the :
+
+                return "{{" + name + fmtSpecifier + "}}";
+            });
+        }
+
+        /// <summary>
+        ///   Converts a string like "yow {{arg0}} ee" to "yow {0} ee"
+        /// </summary>
+        public static string TransformSdvFormatStringToCSharpFormatString(string translatedSdvFormatString, string sourceSdvFormatString)
+        {
+            // Note that we assume the original format string was ordered like "foo {0} {1}" and not "foo {1} {0}".
+            //  That *is* a valid thing to assume when your format strings are all coming from generated code from
+            //  interpolated strings, rather than from calls to string.Format.
+
+            Dictionary<string, int> argNameToIndexMap = new Dictionary<string, int>();
+            int counter = 0;
+            foreach (Match match in sdvFormatStringPattern.Matches(sourceSdvFormatString))
+            {
+                string argName = match.Groups["argName"].Value;
+                if (!argNameToIndexMap.ContainsKey(argName))
+                {
+                    argNameToIndexMap[argName] = counter;
+                    ++counter;
+                }
+            }
+
+            return sdvFormatStringPattern.Replace(translatedSdvFormatString, (m) =>
+            {
+                var number = argNameToIndexMap[m.Groups["argName"].Value]; // Can throw if translation is bad!
+                var fmtSpecifier = m.Groups["formatSpecifier"].Value; // note - includes the :
+
+                return "{" + number.ToString(CultureInfo.InvariantCulture) + fmtSpecifier + "}";
+            });
+        }
+
     }
 }

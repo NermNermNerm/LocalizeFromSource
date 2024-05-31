@@ -105,18 +105,48 @@ namespace LocalizeFromSourceLib.Tests
         }
 
         [TestMethod]
-        public void FormatTests()
+        public void FormatTest1()
         {
-            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [new DiscoveredString("one {0}, {1}, and {2}", false, "test", 57)]);
+            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [new DiscoveredString("one {0}, {1}, and {2}", true, "test", 57)]);
             var defaultJson = this.ReadDefaultJson();
             Assert.AreEqual(1, defaultJson!.Count);
-            Assert.AreEqual("one {0}, {1}, and {2}", defaultJson["000001"]);
+            Assert.AreEqual("one {{arg0}}, {{arg1}}, and {{arg2}}", defaultJson["000001"]);
 
-            WriteDeJson(new Dictionary<string, string>() { { "000001", "ein {2}, {1}, {0} fin" } });
+            WriteDeJson(new Dictionary<string, string>() { { "000001", "ein {{arg2}}, {{arg1}}, {{arg0}} fin" } });
 
             this.locale = "de-de";
             string translation = this.translator.TranslateFormatted($"one {"a"}, {"b"}, and {"c"}");
             Assert.AreEqual("ein c, b, a fin", translation);
+            this.locale = "en-us";
+            translation = this.translator.TranslateFormatted($"one {"a"}, {"b"}, and {"c"}");
+            Assert.AreEqual("one a, b, and c", translation);
+            this.locale = "es-es";
+            translation = this.translator.TranslateFormatted($"one {"a"}, {"b"}, and {"c"}");
+            Assert.AreEqual("one a, b, and c", translation);
+        }
+
+
+        [TestMethod]
+        public void FormatTest2()
+        {
+            // Ensure names and format specifiers are respected
+            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false,
+                [new DiscoveredString("one {0:d4}|one|, {1:d3}|two|.", true, "test", 57)]);
+            var defaultJson = this.ReadDefaultJson();
+            Assert.AreEqual(1, defaultJson!.Count);
+            Assert.AreEqual("one {{one:d4}}, {{two:d3}}.", defaultJson["000001"]);
+
+            WriteDeJson(new Dictionary<string, string>() { { "000001", "ein {{one:x2}}, {{two:x3}} fin." } });
+
+            this.locale = "de-de";
+            var translation = this.translator.TranslateFormatted($"one {123:d4}|one|, {234:d3}|two|.");
+            Assert.AreEqual("ein 7b, 0ea fin.", translation);
+            this.locale = "en-us";
+            translation = this.translator.TranslateFormatted($"one {123:d4}|one|, {234:d3}|two|.");
+            Assert.AreEqual("one 0123, 234.", translation);
+            this.locale = "es-es";
+            translation = this.translator.TranslateFormatted($"one {123:d4}|one|, {234:d3}|two|.");
+            Assert.AreEqual("one 0123, 234.", translation);
         }
 
         [TestMethod]
