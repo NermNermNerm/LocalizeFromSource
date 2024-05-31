@@ -114,8 +114,8 @@ namespace LocalizeFromSourceLib.Tests
             WriteDeJson(new Dictionary<string, string>() { { "000001", "ein {2}, {1}, {0} fin" } });
 
             SdvTranslator.GetLocale = () => "de-de";
-            string translation = this.translator.TranslateFormatted("one {0}, {1}, and {2}");
-            Assert.AreEqual("ein {2}, {1}, {0} fin", translation);
+            string translation = this.translator.TranslateFormatted($"one {"a"}, {"b"}, and {"c"}");
+            Assert.AreEqual("ein c, b, a fin", translation);
         }
 
         [TestMethod]

@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -35,13 +36,9 @@ namespace LocalizeFromSourceLib
         public static string SourceLocale { get; set; } = "en-us";
 
         /// <inheritDoc/>
-        public override string Translate(string stringInSourceLocale)
-            => this.GetBestTranslation(stringInSourceLocale);
-
-        /// <inheritDoc/>
-        public override string TranslateFormatted(string formatStringInSourceLocale)
+        protected override string GetTranslationOfFormatString(string formatStringInSourceLocale)
         {
-            var translation = this.GetBestTranslation(formatStringInSourceLocale);
+            var translation = this.GetTranslation(formatStringInSourceLocale);
             int counter = 0;
             return formatRegex.Replace(translation, m => counter++.ToString(CultureInfo.InvariantCulture));
         }
@@ -72,13 +69,13 @@ namespace LocalizeFromSourceLib
                 keyToSourceStringDictionary = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(defaultJsonPath), jsonSerializerOptions);
                 if (keyToSourceStringDictionary is null)
                 {
-                    RaiseTranslationFilesCorrupt($"Unable to read '{defaultJsonPath}' - translation will not work.  The file contains null.");
+                    this.RaiseTranslationFilesCorrupt($"Unable to read '{defaultJsonPath}' - translation will not work.  The file contains null.");
                     return null;
                 }
             }
             catch (Exception ex)
             {
-                RaiseTranslationFilesCorrupt($"Unable to read '{defaultJsonPath}' - translation will not work.  Error was: {ex}");
+                this.RaiseTranslationFilesCorrupt($"Unable to read '{defaultJsonPath}' - translation will not work.  Error was: {ex}");
                 return null;
             }
 
@@ -87,7 +84,7 @@ namespace LocalizeFromSourceLib
             {
                 if (reverseLookup.ContainsKey(pair.Value))
                 {
-                    RaiseTranslationFilesCorrupt($"{defaultJsonPath} was not built by this compiler!  It has multiple keys with the same translation key: {pair.Key} value: '{pair.Value}'.  Translations of this string will not yield accurate results.");
+                    this.RaiseTranslationFilesCorrupt($"{defaultJsonPath} was not built by this compiler!  It has multiple keys with the same translation key: {pair.Key} value: '{pair.Value}'.  Translations of this string will not yield accurate results.");
                 }
                 else
                 {
@@ -129,7 +126,7 @@ namespace LocalizeFromSourceLib
                         var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(translationPath), jsonSerializerOptions);
                         if (dict is null)
                         {
-                            RaiseTranslationFilesCorrupt($"{translationPath} has null contents");
+                            this.RaiseTranslationFilesCorrupt($"{translationPath} has null contents");
                         }
                         else
                         {
@@ -138,7 +135,7 @@ namespace LocalizeFromSourceLib
                     }
                     catch (Exception ex)
                     {
-                        RaiseTranslationFilesCorrupt($"{translationPath} cannot be read: {ex}");
+                        this.RaiseTranslationFilesCorrupt($"{translationPath} cannot be read: {ex}");
                     }
                 }
 
@@ -156,7 +153,8 @@ namespace LocalizeFromSourceLib
             return translations;
         }
 
-        private string GetBestTranslation(string stringInSourceLocale)
+        /// <inheritDoc/>
+        protected override string GetTranslation(string stringInSourceLocale)
         {
             var reverseLookup = defaultJsonReversed.Value;
             if (GetLocale is null)
@@ -191,7 +189,7 @@ namespace LocalizeFromSourceLib
 
             if (!reverseLookup.TryGetValue(stringInSourceLocale, out string? key))
             {
-                RaiseTranslationFilesCorrupt($"The following string is not in the default.json: '{stringInSourceLocale}'");
+                this.RaiseTranslationFilesCorrupt($"The following string is not in the default.json: '{stringInSourceLocale}'");
                 return stringInSourceLocale;
             }
 
@@ -204,8 +202,55 @@ namespace LocalizeFromSourceLib
                 }
             }
 
-            RaiseBadTranslation($"The following string does not have a translation in {currentLocale}: '{stringInSourceLocale}'");
+            this.RaiseBadTranslation($"The following string does not have a translation in {currentLocale}: '{stringInSourceLocale}'");
             return stringInSourceLocale;
+        }
+
+        private static readonly Regex sdvEventLocalizableParts = new Regex(
+            @"""(?<localizablePart>[^""]+)""", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        private static readonly Regex sdvAssetPathPattern = new Regex(
+            @"^(\([A-Z]+\))?\w+[\./\\][\w\./\\]*\w$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        /// <summary>
+        ///   Localizes the strings within Stardew Valley Event code.
+        /// </summary>
+        public string SdvEvent(FormattableString formattableString)
+        {
+            // The question is whether to do the format conversion before or after the localization pass.
+            // The risk of doing it before is that formatting it will bring in something that looks localizable.
+            // The risk of doing it after is that the localization brings in something that looks like a
+            // format argument.
+            //
+            // Realistically, neither should happen, but the thing the developer is most in control of is
+            // formatting, and so if something gets screwed up, it'll be just as likely to show itself in
+            // the source language as any other, so overall, the risk of a post-shipping bug appearing is
+            // reduced by doing the formatting first.
+            string sourceLanguageEventCode = formattableString.ToString();
+            string translated = sdvEventLocalizableParts.Replace(sourceLanguageEventCode, m =>
+            {
+                var localizablePart = m.Groups["localizablePart"];
+                if (sdvAssetPathPattern.IsMatch(localizablePart.Value))
+                {
+                    return m.Value;
+                }
+                else
+                {
+                    return sourceLanguageEventCode.Substring(m.Index, localizablePart.Index - m.Index)
+                        + this.GetTranslation(localizablePart.Value)
+                        + sourceLanguageEventCode.Substring(localizablePart.Index + localizablePart.Length, m.Index + m.Length - localizablePart.Index - localizablePart.Length);
+                }
+            });
+            return translated;
+        }
+
+        /// <summary>
+        ///   Localizes the strings within Stardew Valley Event code.
+        /// </summary>
+        public string SdvQuest(string questString)
+        {
+            var splits = questString.Split('/', 5);
+            string loc(string s) => s == "" ? "" : this.GetTranslation(s);
+            return $"{splits[0]}/{this.GetTranslation(splits[1])}/{loc(splits[2])}/{loc(splits[3])}/{splits[4]}";
         }
     }
 }
