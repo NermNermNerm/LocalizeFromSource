@@ -13,7 +13,12 @@ namespace LocalizeFromSourceLib
         private readonly Lazy<Dictionary<string, string>?> defaultJsonReversed;
         private readonly Dictionary<string, List<Dictionary<string,string>>> translations = new();
 
-        internal SdvTranslator()
+        private static readonly JsonSerializerOptions jsonSerializerOptions = new JsonSerializerOptions { AllowTrailingCommas = true, ReadCommentHandling = JsonCommentHandling.Skip };
+
+        /// <summary>
+        ///   Constructor for test overrides.
+        /// </summary>
+        internal protected SdvTranslator()
         {
             this.defaultJsonReversed = new(this.GetSourceLanguageReverseLookup);
         }
@@ -43,7 +48,11 @@ namespace LocalizeFromSourceLib
 
         private static readonly Regex formatRegex = new Regex(@"{{\w+(?<fmt>:[^}]+)}}", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-        private string? GetI18nFolder()
+        /// <summary>
+        ///   Gets the folder containing the SDV localization files.
+        /// </summary>
+        /// <remarks>This is a test insertion point.</remarks>
+        protected virtual string? GetI18nFolder()
         {
             return Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "i18n");
         }
@@ -60,7 +69,7 @@ namespace LocalizeFromSourceLib
             Dictionary<string, string>? keyToSourceStringDictionary;
             try
             {
-                keyToSourceStringDictionary = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(defaultJsonPath));
+                keyToSourceStringDictionary = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(defaultJsonPath), jsonSerializerOptions);
                 if (keyToSourceStringDictionary is null)
                 {
                     RaiseTranslationFilesCorrupt($"Unable to read '{defaultJsonPath}' - translation will not work.  The file contains null.");
@@ -117,7 +126,7 @@ namespace LocalizeFromSourceLib
                 {
                     try
                     {
-                        var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(translationPath));
+                        var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(translationPath), jsonSerializerOptions);
                         if (dict is null)
                         {
                             RaiseTranslationFilesCorrupt($"{translationPath} has null contents");

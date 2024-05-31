@@ -13,6 +13,7 @@ namespace LocalizeFromSourceLib.Tests
         private string i18nFolder = null!;
 
         private TestableSdvTranslationCompiler testSubject = null!;
+        private TestableSdvTranslator translator = null!;
 
         [TestInitialize]
         public void Initialize()
@@ -30,6 +31,7 @@ namespace LocalizeFromSourceLib.Tests
             var assembly = AssemblyDefinition.ReadAssembly(thisAssemblyPath, new ReaderParameters { ReadSymbols = true });
             var combinedConfig = CombinedConfig.Create(assembly, Environment.CurrentDirectory, defaultConfig);
             this.testSubject = new TestableSdvTranslationCompiler(combinedConfig);
+            this.translator = new TestableSdvTranslator(this.i18nFolder);
         }
 
         [TestCleanup]
@@ -41,17 +43,32 @@ namespace LocalizeFromSourceLib.Tests
         private T ReadJson<T>(string filename)
         {
             var result = JsonSerializer.Deserialize<T>(
-                File.ReadAllText(Path.Combine(i18nFolder, filename)),
+                this.ReadJsonRaw(filename),
                 new JsonSerializerOptions { ReadCommentHandling = JsonCommentHandling.Skip });
             Assert.IsNotNull(result);
             return result!;
         }
+
+        private void WriteJson<T>(string filename, T jsonData)
+        {
+            var json = JsonSerializer.Serialize<T>(jsonData);
+            this.WriteJsonRaw(filename, json);
+        }
+
+        private string ReadJsonRaw(string filename)
+                => File.ReadAllText(Path.Combine(i18nFolder, filename));
+
+        private void WriteJsonRaw(string filename, string contents)
+                => File.WriteAllText(Path.Combine(i18nFolder, filename), contents);
 
         private Dictionary<string, string> ReadDefaultJson()
             => this.ReadJson<Dictionary<string, string>>("default.json");
 
         private Dictionary<string, string> ReadDeJson()
             => this.ReadJson<Dictionary<string, string>>("de.json");
+
+        private void WriteDeJson(Dictionary<string, string> translations)
+            => this.WriteJson("de.json", translations);
 
         private Dictionary<string, string> ReadDeEditsJson()
             => this.ReadJson<Dictionary<string, string>>("de.edits.json");
@@ -86,6 +103,20 @@ namespace LocalizeFromSourceLib.Tests
             Assert.AreEqual("a b c", defaultJson["000002"]);
         }
 
+        [TestMethod]
+        public void FormatTests()
+        {
+            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [new DiscoveredString("one {0}, {1}, and {2}", false, "test", 57)]);
+            var defaultJson = this.ReadDefaultJson();
+            Assert.AreEqual(1, defaultJson!.Count);
+            Assert.AreEqual("one {0}, {1}, and {2}", defaultJson["000001"]);
+
+            WriteDeJson(new Dictionary<string, string>() { { "000001", "ein {2}, {1}, {0} fin" } });
+
+            SdvTranslator.GetLocale = () => "de-de";
+            string translation = this.translator.TranslateFormatted("one {0}, {1}, and {2}");
+            Assert.AreEqual("ein {2}, {1}, {0} fin", translation);
+        }
 
         [TestMethod]
         public void TranslationTests()
@@ -200,6 +231,7 @@ namespace LocalizeFromSourceLib.Tests
             Assert.AreEqual(2, deTranslation!.Count);
             Assert.AreEqual("ich bin dabei!", deTranslation["000002"]);
             Assert.AreEqual("Ich habe etwas Neues hinzugefügt", deTranslation["000003"]);
+
 
             // Now things get further out of sync
             testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [

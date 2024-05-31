@@ -1,5 +1,8 @@
 # Localization From Source
 
+This library aims to simplify the process of localizing Stardew Valley mods by allowing the source of truth
+for strings to remain in the C# code.
+
 ## What it does
 
 The traditional way to localize a Stardew Valley mod involves finding every localizable string (by eye), copying them to
@@ -23,7 +26,7 @@ only if you have this line in your using block:
 using static LocalizeFromSourceLib.LocalizeMethods;
 ```
 
-## How it helps Translators
+### How it helps Translators
 
 Now let's talk about what happens after someone creates a localized version of your default.json.  It's certainly easy
 to do on the first go-around.  They just copy/paste your default.json into `de.json` and convert all the English strings
@@ -44,10 +47,10 @@ likes it, enthuses over it, asks to do a translation so that their friends can p
 New multi-lingual players appear all the time, but it's pretty daunting to chime in and offer to update the
 translations - what state was it left in?  When was it last translated?  What strings are actually broken?
 Will the previous translator ever reappear?  All these questions and more make it hard for people to step in
-and fix things.  If there's a single file they can look at on GitHub that tells them exactly what needs updated,
+and fix things.  If there's a single file they can look at on GitHub that tells them exactly what needs to be updated,
 they can just update that file and mail you the update and leave it up to you to apply it.
 
-## Mixed code and localizable strings
+### Mixed code and localizable strings
 
 In Stardew Valley, there are cases where what amounts to game code is mixed into a localizable string.
 
@@ -87,7 +90,7 @@ part of the string, you can do so *without* having to make the same change acros
 
 For quests, that's nice.  But there's also a `SdvEvent` method, and, well, I think the power of that is self-evident.
 
-## Ensuring everything that should be localized is localized
+### Ensuring everything that should be localized is localized
 
 Generally, you can eyeball when a string should be localized and you can do a pretty good job of finding them.
 But if "pretty good" isn't what you're after and you want static analysis to help ensure that you've got everything,
@@ -127,7 +130,7 @@ worth the hassle of editing the json, for those cases, you can use `I()`, simila
 var c = farmAnimals.Values.Count(a => a.type.Value.EndsWith(I(" Chicken")));
 ```
 
-## Format Strings
+### Format strings
 
 The perils of `String.Format(identifier, x, y)` have been known for a long time, and a number of remedies have
 been devised, with varying degrees of effectiveness.  Interpolated strings is certainly one of the most powerful
@@ -138,7 +141,7 @@ instead of just `L`.  Like so:
 quest.currentObjective = LF($"{count} of 6 teleported");
 ```
 
-If you do that, then you'll see a string like this generated in your default.json `"{arg0} of 6 teleported"`.
+If you do that, then you'll see a string like this generated in your default.json `"{0} of 6 teleported"`.
 
 Note that there is also a version for invariant strings, `IF`.  Why can't we just do `L`?  It's a long story
 involving how the compiler works.  If left to its own devices, $"{count} of 6 teleported" will get turned
@@ -147,11 +150,237 @@ If, on the other hand, you pass an interpolated string to a method that takes a 
 an argument, then it constructs such an object and passes that to the method.  That's the behavior that
 `LF` is counting on.  "Aha!"  I hear you say.  "Just have an overload of `L` that takes a string and another
 that takes `FormattableString`!  Problem solved!"  Ah, would that it were true.  If you do that, you'll find
-that the `FormattableString` overload never gets called.  That's because the actual type of the object that
+that the `FormattableString` overload never gets called.  That's because the type of the object that
 the compiler generates is not actually `FormattableString` but instead is a subclass, which is internal,
-and there is an operator that can convert `FormattableString` to a string.  So the compiler has two choices,
-where both involve a conversion.  It prefers the conversion to string and so, well, game over.  (If you know
-a way to beat that, please raise an Issue!)
+making it so there isn't an exact type-match with either overload.  The compiler has two options to convert
+to a type that will match one of the overloads - there's the subclass conversion and, of course, the
+interpolated string has a string conversion.  It picks the string conversion because conversions to base
+types are always preferred.  If you know a way to beat that, please raise an Issue!  It'd sure be nice if it
+could be overloaded!
 
+## Installing and using the package
 
+1. Install the 'NermNermNerm.Stardew.LocalizeFromSource' NuGet package.
+2. Edit the `<PropertyGroup>` block of your `.csproj` file to add these lines:
 
+```xml
+<BundleExtraAssemblies>ThirdParty</BundleExtraAssemblies>
+<IgnoreModFilePatterns>\.edits\.json$</IgnoreModFilePatterns>
+```
+
+> Note that `BundleExtraAssemblies` might bring in other DLL's into your package than you intend.  After your
+> compile with this setting, look at the files that were copied into the Mod folder and make sure that only
+> the LocalizeFromSource.dll was added.  If there are unwanted DLL's in there, add them to `IgnoreModFilePatterns`.
+ 
+3. In your ModEntry, add these lines to hook up the translator:
+
+```C#
+        // Optional - changes localized strings to have umlauts and accent marks to make it easier to see
+        //  localized strings when running the game in your native language.
+#if DEBUG
+        DoPseudoLoc = true;
+#endif
+
+        // Lets the library know what the locale is at all times
+        LocalizeFromSourceLib.SdvTranslator.GetLocale = () => helper.Translation.Locale;
+        // Lets the library report errors
+        LocalizeFromSourceLib.Translator.OnBadTranslation += (message) => this.Monitor.LogOnce(IF($"Translation error: {message}"), LogLevel.Info);
+        LocalizeFromSourceLib.Translator.OnTranslationFilesCorrupt += (message) => this.Monitor.LogOnce(IF($"Translation error: {message}"), LogLevel.Error);
+```
+
+4. This step is not actually particular to using this library for localization.  SDV changes the Locale to the one
+   selected by the user only after some assets are already loaded.  To my knowledge, this includes objects and buildings
+   and crafting recipes (but recipes don't contain any localized text so they don't matter).  If you have any custom
+   objects or buildings, add a line like this:
+
+```C#
+this.Helper.Events.Content.LocaleChanged += (_,_) => this.Helper.GameContent.InvalidateCache("Data/Objects");
+```
+
+5. In each C# file that contains the strings that should be translated add this to the using blocks:
+
+```C#
+using static LocalizeFromSourceLib.LocalizeMethods;
+```
+
+6. For each translatable string, wrap them in `L` if they are plain strings, `LF` if they are format strings.
+   (And, if you are using String.Format, convert them to interpolated strings, like `$"x is {x}"`).
+
+If you do all these things and compile, you should see that a `default.json` file was generated.  Indeed, if somebody
+supplies you with a language file (like a `de.json` file) that translates all the values in `default.json`, it should
+just work if you switch languages.
+
+## Common pitfalls
+
+The argument to `L` **MUST** be a constant string and likewise `LF` must take a constant format string.
+
+```C#
+string s = "world";
+spew(L("hello")); // Okay
+spew(L($"hello {s}")); // Not okay
+spew(LF($"hello {s}")); // Okay, but if s is a string, ensure it's localized appropriately!
+
+spew(L(s)); // Not okay.
+string s = L(s); spew(s); // Okay
+```
+
+Note that this package has both compile-time and run-time elements.  All the faults above generate compile-time errors.
+
+## Quests and Events
+
+There are special versions of `L` for use with quest and event descriptors.  The event one is straightforward:
+
+```C#
+            else if (e.NameWithoutLocale.IsEquivalentTo("Data/Quests"))
+            {
+                e.Edit(editor =>
+                {
+                    IDictionary<string, string> data = editor.AsDictionary<string, string>().Data;
+                    data[MeetLinusAtTentQuest] = SdvQuest("Basic/Find Linus At His Tent/Linus said he had something he needed your help with./Go to Linus' tent before 10pm/null/-1/0/-1/false");
+                    data[MeetLinusAt60Quest] = SdvQuest("Basic/Meet Linus At Level 60/Linus had something he wanted to show you at level 60 of the mines./Follow Linus to level 60/null/-1/0/-1/false");
+                    data[CatchIcePipsQuest] = SdvQuest("Basic/Catch Six Ice Pips/Catch six ice pips and put them in the mysterious fish tank.//null/-1/0/-1/false");
+                });
+            }
+```
+
+It's just a matter of using `SdvQuest` instead of `L`.  The advantage of this is that it will produce localizable strings for each part of the quest in the `default.json` instead of the whole thing, so if ever you need to tweak the non-localizable parts, you can do that without having to mess with the translations.
+
+Events can be that simple too, depending on where you are storing your event code.  The approach that this system
+supports is for if you are pasting your event code directly into your C#.
+
+```C#
+        private void EditFarmHouseEvents(IDictionary<string, string> eventData)
+        {
+            eventData[IF($"{MiningJunimoDreamEvent}/H/sawEvent {ReturnJunimoOrbEvent}/time 600 620")]
+                = SdvEvent($@"grandpas_theme/
+-2000 -1000/
+farmer 13 23 2/
+skippable/
+fade/
+addTemporaryActor Grandpa 1 1 -100 -100 2 true/
+specificTemporarySprite grandpaSpirit/
+viewport -1000 -1000 true/
+pause 8000/
+speak Grandpa ""My dear boy...^My beloved grand-daughter...#$b#I am sorry to come to you like this, but I had to thank you for rescuing my dear Junimo friend.#$b#He protected me at a time when my darkest enemy was my own failing mind.#$b#In better days, he helped me with my smelters and other mine-related machines.  He will help you too; he really enjoys watching the glow of the fires!#$b#I rest much easier now knowing that my friend is safe.  I am so proud of you...""/playmusic none/
+pause 1000/
+end bed");
+        }
+```
+
+You see that there's a `SdvEvent` wrapping the event descriptor.  This method insists that the value be a formatted
+string simply because you *might* be injecting some code in there.  (For example, maybe you have a custom event command
+and have a constant for the name of your command.)
+
+Like with quests, `SdvEvent` parses the event code and looks for localizable things within that code and puts just that
+into the `default.json`.  The implementation as of now is pretty dumb.  It just looks for things between quotes, filters
+out things that look like identifiers and/or paths, and puts them into default.json.  It's true that there are a finite
+number of *stock* commands that require localized text (e.g. the `speak` in this example), but there are custom event
+commands that we can't know about.  The upshot is to take a careful look at your event code and ensure that nothing is
+quoted that doesn't need to be and that all dialog is quoted.  You can also look at your generated `default.json` file
+to see if anything incorrect showed up there.  If it does, it's not the end of the world, just make sure your translators
+know to leave that string alone.  And, of course, raise an Issue about it so that better solutions can be imagined.
+
+## Enabling 'Strict' mode
+
+First off let's be clear here:  This package is using heuristics and user-supplied clues to sort out what needs to be
+localized and what doesn't.  It's not foolproof, and turning this mode on will open you up to some daily friction in
+your coding.  This package has a lot of tools designed to reduce that friction, but it'll never zero it out.  Is it
+worth it?  That's up to you.  Also, the tools we're describing here have the potential to overdo it - meaning that
+they may confuse a localizable string for an invariant one, causing mistakes.  Again, it's up to you.  Use these
+tools carefully.
+
+With those disclaimers out of the way, let's get on with it.  The first thing you should do is to add `L` and `LF`
+strings just by inspection.  The goal of doing this first is to, as much as possible, make your first build in
+strict mode just show the false-positives.  Once that's done and compiling well, create a file called
+`LocalizeFromSource.json` in the same folder as your .csproj file:
+
+```C#
+{
+    "isStrict": true,
+    "invariantStringPatterns": [],
+    "invariantMethods": []
+}
+```
+
+The first build after that will display all the findings.  Note that the errors spewed in this way are using
+a relatively primitive means of reporting errors in Visual Studio, and so the line numbers will not keep up with
+changes in the source code, so beware of that.  In any case, use this first build to just get an overview of what
+you need to change.  You'll probably be able to assemble them into these categories:
+
+* String identifiers that are passed to methods.  Strict mode, by default, has some ways of identifying string
+  identifiers (e.g. looking for `camelCase` or `path/characters`...) but there are cases like `Abigail` (where
+  there's just one word) that aren't clear-cut enough.  For these cases, particularly api's that you use several
+  times in your app, consider adding a line to the `invariantMethods` list with the fully-qualified-name of the
+  method.  The package maintains a prefab list of such methods (e.g. `playSound`), but it's far from comprehensive.
+  If you come up with one or more of thse, consider creating a pull request to add them to the stock list.
+* Logging.  There's a case to be made to localize the logging, to make it easier for players to read the log,
+  but the cost is that it makes it so that you have a hard time reading the log.  It also makes it so that
+  the players have a hard time searching forums and so forth for solutions to whatever problem it is that
+  they're experiencing.  In a world where machine translation and web searches exist, it's probably better
+  to make your logging in the source language.  If you've rolled some of your own logging functions, what
+  you can do is convert them to always taking `FormattableString` as an argument (rather than plain string)
+  and adding `ArgumentIsCultureInvariant` as an attribute to the method.  Conversion to formattable string 
+  as an argument will force you to add a $ in front of all the plain strings you call it with.  It's not a
+  great solution, but it feels better than having two different overloads for your logging function.
+* Exception messages are a similar story to logging.  It's going to be case-by-case.  If you use exceptions
+  within your mod as a means to pass error messages to the user, then they should be localized.  However,
+  most exception messages only ever land in the log file, and so are covered by what we said about Logging.
+  However, given the case-by-case nature of the thing, it's best to just go ahead and mark the messages
+  with an `I` or `L` and not try and automate the messages away.  However, if you want to play it differently,
+  you can add the exception's constructor to the `invariantMethods` block.
+* Methods and classes that just have a ton of non-localized strings in them that aren't ever going to have any
+  localized strings.  It happens.  You can use the `NoStrict` attribute on methods and classes like this
+  and it will disable strict-mode just for those methods/classes.
+* Recognizable strings.  It could be that there's a string pattern that you use in your code that is
+  mechanically identifiable and will never be localizable.  For these, you can write a regular expression
+  to recognize them (a .net regular expression with escaping to fit in a json file) and add that to the
+  `invariantStringPatterns` array.  Be exceedingly careful with these patterns and make sure they don't
+  catch things they shouldn't.  The compiler can get confused and make mistakes with `LF` if these match
+  things they shouldn't.
+
+But there will be a broad set of cases that just don't fit into any of these categories and so you will
+doubtless have a fair number of `I` and `IF` calls sprinkled through your code.  Hopefully these instances
+will have some beneficial effect in highlighting the nature of these strings and maybe making the code
+a little more readable rather than less so.
+
+## Help wanted
+
+This library scratches an itch I've had throughout my career.  Everywhere I work there's a semi-broken
+approach to localization, much of it essentially unfixable because of historical, contractual,
+or just funding reasons.  With SDV mods, at least in my own mods, I can fix it.  But in any system,
+there's room for improvement.  Here are a few areas where somebody could add value.
+
+### Better line number reporting
+
+This represents my first foray into .Net IL, and the API doesn't make it at all clear how to get a good
+track of where strings are coming from.  If you know better, please fix my mistakes!
+
+### Actually construct a call graph
+
+Again looking at my IL code (in `LocalizeFromSource\Decompiler.cs`) you see that it's really pretty
+stupid - it just looks at the gap between `Ldstr` instructions and the first call it can recognize.
+That *seems* to be good enough, but I'd feel a whole lot better if a call-graph could be constructed.
+
+### Roslyn analyzer
+
+I've never written one, but I *believe* it'd be possible to write something that could basically do
+all the functions of strict mode within the IDE, prior to compilation.  I believe that would yield a much
+better experience.
+
+### Partial usage
+
+I've only thought about this thing from the perspective of somebody starting from scratch where
+this library does all the localization work.  It seems like a likely use-case would be more of a
+mixed bag where some is still old-school and some is this way.  Is that reasonable?  I don't
+really know.  Seems like it should be, but it'd take some thought.
+
+### Better interactions for translators
+
+I think the main problem facing translated mods has has more to do with the culture
+of modding than any kind of code problem.  We have enthusiasts creating mods on their own time
+(and sometimes abandoning them) and we have enthusiasts contributing translations on their own time
+(and sometimes abandoning them).  We need some ways to make the process of contributing translations
+to be more easily crowd-sourced.
+
+I also wonder if we could leverage Google Translate to create placeholders until a human has a chance
+to review a string.
