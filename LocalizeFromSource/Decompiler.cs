@@ -121,7 +121,7 @@ namespace LocalizeFromSource
                     }
                     else if (this.IsCallToLF(instruction))
                     {
-                        reporter.ReportLocalizedString(s, ldStrSequencePoint ?? bestSequencePoint);
+                        reporter.ReportLocalizedString(SdvTranslator.TransformCSharpFormatStringToSdvFormatString(s), ldStrSequencePoint ?? bestSequencePoint);
                         foundCall = true;
                         break;
                     }

@@ -41,7 +41,7 @@ namespace LocalizeFromSourceLib.Tests
             testSubject.FindLocalizableStrings(decompilerTestTarget, this.stubReporter);
             Assert.AreEqual(2, this.stubReporter.LocalizableStrings.Count);
             Assert.IsTrue(this.stubReporter.LocalizableStrings.Any(s => s.localizedString == "should be found"));
-            Assert.IsTrue(this.stubReporter.LocalizableStrings.Any(s => s.localizedString == "should be found{0}"));
+            Assert.IsTrue(this.stubReporter.LocalizableStrings.Any(s => s.localizedString == "should be found{{arg0}}"));
             Assert.AreEqual(1, this.stubReporter.BadStrings.Count);
             Assert.IsTrue(this.stubReporter.BadStrings.Any(s => s.Contains("Should be a problem")));
         }
