@@ -15,7 +15,7 @@
         /// <summary>
         ///   Gets a translation of <paramref name="stringInSourceLocale"/> - if none can be had,
         ///   it falls back to the source string.  It does not throw exceptions if translation files are missing or corrupt,
-        ///   reporting those with <see cref="LocalizeMethods.OnTranslationFilesCorrupt"/> and <see cref="LocalizeMethods.OnBadTranslation"/> instead.
+        ///   reporting those with <see cref="SdvLocalizeMethods.OnTranslationFilesCorrupt"/> and <see cref="SdvLocalizeMethods.OnBadTranslation"/> instead.
         /// </summary>
         public string Translate(string stringInSourceLocale)
             => this.ApplyPseudo(this.GetTranslation(stringInSourceLocale));
@@ -35,23 +35,9 @@
         /// <summary>
         ///   Gets a translation of <paramref name="stringInSourceLocale"/> - if none can be had,
         ///   it falls back to the source string.  It does not throw exceptions if translation files are missing or corrupt,
-        ///   reporting those with <see cref="LocalizeMethods.OnTranslationFilesCorrupt"/> and <see cref="LocalizeMethods.OnBadTranslation"/> instead.
+        ///   reporting those with <see cref="SdvLocalizeMethods.OnTranslationFilesCorrupt"/> and <see cref="SdvLocalizeMethods.OnBadTranslation"/> instead.
         /// </summary>
         protected abstract string GetTranslation(string stringInSourceLocale);
-
-        /// <summary>
-        ///   Raises <see cref="LocalizeMethods.OnTranslationFilesCorrupt"/>.
-        /// </summary>
-        /// <remarks>Test classes can override this to validate that these events are generated without having to touch a static.</remarks>
-        protected virtual void RaiseTranslationFilesCorrupt(string error)
-            => LocalizeMethods.RaiseTranslationFilesCorrupt(error);
-
-        /// <summary>
-        ///   Raises <see cref="LocalizeMethods.OnBadTranslation"/>.
-        /// </summary>
-        /// <remarks>Test classes can override this to validate that these events are generated without having to touch a static.</remarks>
-        protected virtual void RaiseBadTranslation(string warning)
-            => LocalizeMethods.RaiseBadTranslation(warning);
 
         private string ApplyPseudo(string s)
         {

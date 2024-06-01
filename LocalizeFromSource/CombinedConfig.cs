@@ -169,8 +169,8 @@ namespace LocalizeFromSource
         {
             HashSet<string> invariantMethods =
             [
-                typeof(LocalizeMethods).FullName + "." + nameof(LocalizeMethods.I),
-                typeof(LocalizeMethods).FullName + "." + nameof(LocalizeMethods.IF),
+                typeof(SdvLocalizeMethods).FullName + "." + nameof(SdvLocalizeMethods.I),
+                typeof(SdvLocalizeMethods).FullName + "." + nameof(SdvLocalizeMethods.IF),
             ];
 
             // .net standard things that are common enough to warrant a special place in our heart.

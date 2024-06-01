@@ -290,5 +290,19 @@ namespace LocalizeFromSourceLib
             });
         }
 
+
+        /// <summary>
+        ///   Raises <see cref="SdvLocalizeMethods.OnTranslationFilesCorrupt"/>.
+        /// </summary>
+        /// <remarks>Test classes can override this to validate that these events are generated without having to touch a static.</remarks>
+        protected virtual void RaiseTranslationFilesCorrupt(string error)
+            => SdvLocalizeMethods.RaiseTranslationFilesCorrupt(error);
+
+        /// <summary>
+        ///   Raises <see cref="SdvLocalizeMethods.OnBadTranslation"/>.
+        /// </summary>
+        /// <remarks>Test classes can override this to validate that these events are generated without having to touch a static.</remarks>
+        protected virtual void RaiseBadTranslation(string warning)
+            => SdvLocalizeMethods.RaiseBadTranslation(warning);
     }
 }

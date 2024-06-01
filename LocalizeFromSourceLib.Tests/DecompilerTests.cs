@@ -58,10 +58,10 @@ namespace LocalizeFromSourceLib.Tests
         public void DecompilerTestTarget()
         {
             new StardewValley.GameLocation().playSound("ignored");
-            Console.WriteLine(LocalizeMethods.I("should be ignored"));
-            Console.WriteLine(LocalizeMethods.IF($"should be ignored{Environment.NewLine}"));
-            Console.WriteLine(LocalizeMethods.L("should be found"));
-            Console.WriteLine(LocalizeMethods.LF($"should be found{Environment.NewLine}"));
+            Console.WriteLine(SdvLocalizeMethods.I("should be ignored"));
+            Console.WriteLine(SdvLocalizeMethods.IF($"should be ignored{Environment.NewLine}"));
+            Console.WriteLine(SdvLocalizeMethods.L("should be found"));
+            Console.WriteLine(SdvLocalizeMethods.LF($"should be found{Environment.NewLine}"));
             this.InvariantByAttribute("ignored");
             Console.WriteLine("Should be a problem");
         }
@@ -70,7 +70,7 @@ namespace LocalizeFromSourceLib.Tests
         public void NoStrictOverrideTestTarget()
         {
             Console.WriteLine("normally this would be a problem.");
-            Console.WriteLine(LocalizeMethods.L("should be found"));
+            Console.WriteLine(SdvLocalizeMethods.L("should be found"));
         }
     }
 

@@ -9,6 +9,10 @@ namespace LocalizeFromSource
     {
         private readonly CombinedConfig config;
 
+        // This class has a mess of hard-coded references to SdvLocalizeMethods.  If this gets split out
+        //  and used in other contexts, perhaps it could take a type-argument and replace all those hard-coded
+        //  references with Reflection-based references.
+
         public Decompiler(CombinedConfig config)
         {
             this.config = config;
@@ -79,7 +83,7 @@ namespace LocalizeFromSource
                 bestSequencePoint = method.DebugInformation.GetSequencePoint(instruction) ?? method.DebugInformation.GetSequencePoint(prevInstruction);
                 if (this.IsCallToL(instruction) && prevInstruction.OpCode != OpCodes.Ldstr)
                 {
-                    reporter.ReportBadUsage(bestSequencePoint, TranslationCompiler.ImproperUseOfMethod, $"The argument to {nameof(LocalizeMethods)}.{nameof(LocalizeMethods.L)} should always be a literal string.  If this is a formatted string, use {nameof(LocalizeMethods.LF)} instead.");
+                    reporter.ReportBadUsage(bestSequencePoint, TranslationCompiler.ImproperUseOfMethod, $"The argument to {nameof(SdvLocalizeMethods)}.{nameof(SdvLocalizeMethods.L)} should always be a literal string.  If this is a formatted string, use {nameof(SdvLocalizeMethods.LF)} instead.");
                 }
             }
 
@@ -188,7 +192,7 @@ namespace LocalizeFromSource
         }
 
         private bool IsCallToL(Instruction instruction)
-            => this.IsCallToLocalizeMethods(instruction, nameof(LocalizeMethods.L));
+            => this.IsCallToLocalizeMethods(instruction, nameof(SdvLocalizeMethods.L));
 
         private bool IsCallToSdvEvent(Instruction instruction)
             => this.IsCallToLocalizeMethods(instruction, nameof(SdvLocalizeMethods.SdvEvent));
@@ -202,12 +206,12 @@ namespace LocalizeFromSource
                 && this.config.IsMethodWithInvariantArgs(methodRef.DeclaringType.FullName + "." + methodRef.Name);
 
         private bool IsCallToLF(Instruction instruction)
-            => this.IsCallToLocalizeMethods(instruction, nameof(LocalizeMethods.LF));
+            => this.IsCallToLocalizeMethods(instruction, nameof(SdvLocalizeMethods.LF));
 
         private bool IsCallToLocalizeMethods(Instruction instruction, string methodName)
             => instruction.OpCode == OpCodes.Call
                 && instruction.Operand is MethodReference methodRef
-                && methodRef.DeclaringType.FullName == typeof(LocalizeMethods).FullName
+                && methodRef.DeclaringType.FullName == typeof(SdvLocalizeMethods).FullName
                 && methodRef.Name == methodName;
     }
 }
