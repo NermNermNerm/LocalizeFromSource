@@ -141,7 +141,7 @@ instead of just `L`.  Like so:
 quest.currentObjective = LF($"{count} of 6 teleported");
 ```
 
-If you do that, then you'll see a string like this generated in your default.json `"{0} of 6 teleported"`.
+If you do that, then you'll see a string like this generated in your default.json `"{{arg0}} of 6 teleported"`.
 
 Note that there is also a version for invariant strings, `IF`.  Why can't we just do `L`?  It's a long story
 involving how the compiler works.  If left to its own devices, $"{count} of 6 teleported" will get turned
@@ -158,6 +158,21 @@ interpolated string has a string conversion.  It picks the string conversion bec
 types are always preferred.  If you know a way to beat that, please raise an Issue!  It'd sure be nice if it
 could be overloaded!
 
+Note that a .net `FormattableString` uses the String.Format style of formatting, e.g. "{0}" and it shows
+up in the `i18n\*.json` files as "{{arg0}}".  That's because this package translates from the .net style
+to the SDV style.  The main reason why it does that is simply to make it familiar to translators who have
+done SDV translations in the past and, in the event there's any tooling out there, make it compatible with
+that too.
+
+The idea of using "{{name}}" rather than "{0}" in SDV has a couple of purposes, one being to give translators
+a little bit of context on what placeholders mean.  For open source mods using this package, you probably
+don't need to do that as reviewers now who need more context can use the link and look at the source code,
+which will provide far more detail on what a placeholder might be replaced with than any single identifier
+can provide.  However, if you really feel like it's important, you can pick your own names (rather than
+'arg0', 'arg1' and so on) by writing your string like this: $"{count}|count| of 6 teleported".  Basically
+you just put the name you want to use (an identifier) surrounded by pipe characters immediately after the
+format.  That will make it show up as "{{count}} of 6 teleported" in the default.json.
+
 ## Installing and using the package
 
 1. Install the 'NermNermNerm.Stardew.LocalizeFromSource' NuGet package.
@@ -165,7 +180,7 @@ could be overloaded!
 
 ```xml
 <BundleExtraAssemblies>ThirdParty</BundleExtraAssemblies>
-<IgnoreModFilePatterns>\.edits\.json$</IgnoreModFilePatterns>
+<IgnoreModFilePatterns>\.edits\.json$,new-language-template.json$</IgnoreModFilePatterns>
 ```
 
 > Note that `BundleExtraAssemblies` might bring in other DLL's into your package than you intend.  After your
@@ -312,7 +327,7 @@ you need to change.  You'll probably be able to assemble them into these categor
   there's just one word) that aren't clear-cut enough.  For these cases, particularly api's that you use several
   times in your app, consider adding a line to the `invariantMethods` list with the fully-qualified-name of the
   method.  The package maintains a prefab list of such methods (e.g. `playSound`), but it's far from comprehensive.
-  If you come up with one or more of thse, consider creating a pull request to add them to the stock list.
+  If you come up with one or more of these, consider creating a pull request to add them to the stock list.
 * Logging.  There's a case to be made to localize the logging, to make it easier for players to read the log,
   but the cost is that it makes it so that you have a hard time reading the log.  It also makes it so that
   the players have a hard time searching forums and so forth for solutions to whatever problem it is that
@@ -342,6 +357,57 @@ But there will be a broad set of cases that just don't fit into any of these cat
 doubtless have a fair number of `I` and `IF` calls sprinkled through your code.  Hopefully these instances
 will have some beneficial effect in highlighting the nature of these strings and maybe making the code
 a little more readable rather than less so.
+
+## Usage
+
+### New Translations
+
+Right after you convert your source code to using this, there will be two files in your i18n folder,
+`default.json` and `new-language-template.json`.  The usual way for translators to work is to copy
+`default.json` to their target language, say `it.json`, and replace all the English strings with
+Italian ones.  That still works.  In this model, there are some other options, depending on the
+technical sophistication of the translator.
+
+#### Translators that also are comfortable with Visual Studio and GitHub should...
+
+1. Fork/Clone the mod repo
+2. Copy `18n/new-language-template.json` to the new language (say `it.edits.json`)
+3. Edit `it.edits.json` and make all the `newTarget` properties into translations of `newSource`.
+4. Save and compile.
+5. Test in the game
+6. Commit, push and create a PR.  Your PR should contain only `it.json` as a new file.
+7. Before completing the PR, merge from the target branch and ensure that no new changes
+   need to be translated.  Look for a new `it.edits.json` file.  If none turns up, you're golden.
+   If it does, update the `newTarget` field for all the edits, rebuild, test again, and push.
+
+### Translators that are not at all comfortable with developer tools should...
+
+1. Copy `default.json` in the mod install folder to their language, say `it.json`
+2. Translate everything just based on their knowledge of the mod.
+3. Test the game
+4. Send the author the new `it.json` and specify exactly which version they were working from.
+
+The author will then
+
+1. Check out the main branch at the commit associated with the version the translator was working from.
+2. At this point it should build without creating a `it.edits.json` file.
+3. Create a branch and commit
+4. Merge with the tip
+5. Build
+6. Check for an `it.edits.json` file.  If it exists, send that to the translator and ask for
+   updates to the impacted strings.
+7. Copy that file into the build over top of the old one and build again.
+8. Once the `it.edits.json` file is gone, you're done.  Else, go back to step 4.
+
+### Updating Translations
+
+Change the "Translations" section on your readme to instruct people interested in updating the
+translations to look at the i18n folder for those `.edits.json` file and either send in pull
+requests with translations for those things or create pull requests.
+
+### Sure would be nice...
+
+If there was a script that did just the `xx.edits.json` => `xx.json` part of the build.
 
 ## Help wanted
 
