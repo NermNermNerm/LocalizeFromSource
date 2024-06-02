@@ -4,7 +4,7 @@ using LocalizeFromSource;
 using Mono.Cecil;
 using NermNermNerm.Stardew.LocalizeFromSource;
 
-namespace LocalizeFromSourceLib.Tests
+namespace LocalizeFromSourceTests
 {
     [TestClass]
     public class DecompilerTests

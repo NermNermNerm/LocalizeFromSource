@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using LocalizeFromSource;
 using Mono.Cecil.Cil;
 
-namespace LocalizeFromSourceLib.Tests
+namespace LocalizeFromSourceTests
 {
     internal class StubReporter
         : Reporter

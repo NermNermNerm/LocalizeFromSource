@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using LocalizeFromSource;
 
-namespace LocalizeFromSourceLib.Tests
+namespace LocalizeFromSourceTests
 {
     public class TestableSdvTranslationCompiler
         : SdvTranslationCompiler
