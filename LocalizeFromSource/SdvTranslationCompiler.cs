@@ -2,7 +2,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using FuzzySharp;
-using LocalizeFromSourceLib;
+using NermNermNerm.Stardew.LocalizeFromSource;
 using Mono.CompilerServices.SymbolWriter;
 
 namespace LocalizeFromSource

@@ -1,4 +1,4 @@
-﻿namespace LocalizeFromSourceLib
+﻿namespace NermNermNerm.Stardew.LocalizeFromSource
 {
     /// <summary>
     ///   The base class for translations.
@@ -39,7 +39,10 @@
         /// </summary>
         protected abstract string GetTranslation(string stringInSourceLocale);
 
-        private string ApplyPseudo(string s)
+        /// <summary>
+        ///   If Pseudo-localization is enabled, it sprinkles accent marks on its input, else it returns it as-is.
+        /// </summary>
+        protected string ApplyPseudo(string s)
         {
             return this.DoPseudoLoc ? s.Replace('e', 'ê').Replace('E', 'É').Replace('a', 'ã').Replace('o', 'ö').Replace('B', 'ß') : s;
         }

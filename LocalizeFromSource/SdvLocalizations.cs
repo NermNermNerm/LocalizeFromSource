@@ -48,6 +48,12 @@ namespace LocalizeFromSource
             return splits.Skip(1).Take(3).Where(s => s != "");
         }
 
+        public static IEnumerable<string> SdvMail(string mailString)
+        {
+            int percentIndex = mailString.IndexOf('%');
+            yield return (percentIndex < 0) ? mailString : mailString.Substring(0, percentIndex);
+        }
+
         public static IEnumerable<string> DomainSpecificInvariantMethodNames => [
             "StardewModdingAPI.IAssetName.IsEquivalentTo",
             "StardewModdingAPI.IAssetName.IsEquivalentTo",

@@ -1,6 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 
-namespace LocalizeFromSourceLib
+namespace NermNermNerm.Stardew.LocalizeFromSource
 {
     /// <summary>
     ///   Localization methods.
@@ -110,6 +110,14 @@ namespace LocalizeFromSourceLib
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static string SdvQuest(string questString)
             => EnsureTranslator().SdvQuest(questString);
+
+
+        /// <summary>
+        ///   Localizes the strings within Stardew Valley Event code.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static string SdvMail(string questString)
+            => EnsureTranslator().SdvMail(questString);
 
         /// <inheritDoc/>
         private static SdvTranslator EnsureTranslator()

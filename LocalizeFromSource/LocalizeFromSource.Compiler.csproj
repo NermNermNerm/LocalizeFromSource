@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\LocalizeFromSourceLib\LocalizeFromSourceLib.csproj" />
+    <ProjectReference Include="..\LocalizeFromSourceLib\LocalizeFromSource.Library.csproj" />
   </ItemGroup>
 
 </Project>

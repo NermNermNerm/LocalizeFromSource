@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using LocalizeFromSource;
+using NermNermNerm.Stardew.LocalizeFromSource;
 using Mono.Cecil;
 
 namespace LocalizeFromSourceLib.Tests

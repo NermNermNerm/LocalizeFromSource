@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace LocalizeFromSourceLib
+namespace NermNermNerm.Stardew.LocalizeFromSource
 {
     /// <summary>
     ///   The Stardew Valley translation mechanism.
@@ -220,7 +220,7 @@ namespace LocalizeFromSourceLib
                 else
                 {
                     return sourceLanguageEventCode.Substring(m.Index, localizablePart.Index - m.Index)
-                        + this.GetTranslation(localizablePart.Value)
+                        + this.ApplyPseudo(this.GetTranslation(localizablePart.Value))
                         + sourceLanguageEventCode.Substring(localizablePart.Index + localizablePart.Length, m.Index + m.Length - localizablePart.Index - localizablePart.Length);
                 }
             });
@@ -233,9 +233,26 @@ namespace LocalizeFromSourceLib
         public string SdvQuest(string questString)
         {
             var splits = questString.Split('/', 5);
-            string loc(string s) => s == "" ? "" : this.GetTranslation(s);
-            return $"{splits[0]}/{this.GetTranslation(splits[1])}/{loc(splits[2])}/{loc(splits[3])}/{splits[4]}";
+            string loc(string s) => s == "" ? "" : this.ApplyPseudo(this.GetTranslation(s));
+            return $"{splits[0]}/{this.ApplyPseudo(this.GetTranslation(splits[1]))}/{loc(splits[2])}/{loc(splits[3])}/{splits[4]}";
         }
+
+        /// <summary>
+        ///   Localizes the localizable part of SDV mail data.
+        /// </summary>
+        public string SdvMail(string mailString)
+        {
+            var firstPercent = mailString.IndexOf('%');
+            if (firstPercent < 0)
+            {
+                return this.ApplyPseudo(this.GetTranslation(mailString));
+            }
+            else
+            {
+                return this.ApplyPseudo(this.GetTranslation(mailString.Substring(0, firstPercent))) + mailString.Substring(firstPercent);
+            }
+        }
+
 
         private static readonly Regex dotnetFormatStringPattern = new(@"{(?<argNumber>\d+)(?<formatSpecifier>:[^}]+)?}(\|(?<argName>\w+)\|)?", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
         private static readonly Regex sdvFormatStringPattern = new Regex(@"{{(?<argName>\w+)(?<formatSpecifier>:[^}]+)?}}", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);

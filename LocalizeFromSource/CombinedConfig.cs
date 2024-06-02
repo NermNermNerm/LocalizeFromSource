@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
-using LocalizeFromSourceLib;
+using NermNermNerm.Stardew.LocalizeFromSource;
 using Mono.Cecil;
 
 namespace LocalizeFromSource
@@ -196,7 +196,7 @@ namespace LocalizeFromSource
                 {
                     foreach (var method in type.Methods)
                     {
-                        if (method.CustomAttributes.Any(c => c.AttributeType.FullName == typeof(LocalizeFromSourceLib.ArgumentIsCultureInvariantAttribute).FullName))
+                        if (method.CustomAttributes.Any(c => c.AttributeType.FullName == typeof(ArgumentIsCultureInvariantAttribute).FullName))
                         {
                             yield return $"{method.DeclaringType.FullName}.{method.Name}";
                         }

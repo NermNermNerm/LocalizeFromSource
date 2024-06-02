@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
+﻿using System.Reflection;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using LocalizeFromSource;
-using LocalizeFromSourceLib;
 using Mono.Cecil;
-using static LocalizeFromSource.DecompileCommand;
+using NermNermNerm.Stardew.LocalizeFromSource;
 
 namespace LocalizeFromSourceLib.Tests
 {
@@ -20,6 +14,7 @@ namespace LocalizeFromSourceLib.Tests
         StubReporter stubReporter = null!;
         MethodDefinition decompilerTestTarget = null!;
         MethodDefinition noStrictOverrideTestTarget = null!;
+        MethodDefinition sdvCustomTestTarget = null!;
 
         [TestInitialize]
         public void TestInitialize()
@@ -33,6 +28,7 @@ namespace LocalizeFromSourceLib.Tests
 
             this.decompilerTestTarget = assembly.Modules.First().Types.First(t => t.Name == nameof(DecompilerTests)).Methods.First(t => t.Name == nameof(DecompilerTestTarget));
             this.noStrictOverrideTestTarget = assembly.Modules.First().Types.First(t => t.Name == nameof(DecompilerTests)).Methods.First(t => t.Name == nameof(NoStrictOverrideTestTarget));
+            this.sdvCustomTestTarget = assembly.Modules.First().Types.First(t => t.Name == nameof(DecompilerTests)).Methods.First(t => t.Name == nameof(SdvCustomStringsTestTarget));
         }
 
         [TestMethod]
@@ -46,6 +42,14 @@ namespace LocalizeFromSourceLib.Tests
             Assert.IsTrue(this.stubReporter.BadStrings.Any(s => s.Contains("Should be a problem")));
         }
 
+        [TestMethod]
+        public void CustomSdvStrings()
+        {
+            testSubject.FindLocalizableStrings(this.sdvCustomTestTarget, this.stubReporter);
+            Assert.AreEqual(2, this.stubReporter.LocalizableStrings.Count);
+            Assert.IsTrue(this.stubReporter.LocalizableStrings.Any(s => s.localizedString == "Mail content"));
+            Assert.IsTrue(this.stubReporter.LocalizableStrings.Any(s => s.localizedString == "Mail content with no code"));
+        }
         [TestMethod]
         public void RespectsNoStrictAttribute()
         {
@@ -64,6 +68,13 @@ namespace LocalizeFromSourceLib.Tests
             Console.WriteLine(SdvLocalizeMethods.LF($"should be found{Environment.NewLine}"));
             this.InvariantByAttribute("ignored");
             Console.WriteLine("Should be a problem");
+        }
+
+
+        public void SdvCustomStringsTestTarget()
+        {
+            Console.WriteLine(SdvLocalizeMethods.SdvMail("Mail content%code"));
+            Console.WriteLine(SdvLocalizeMethods.SdvMail("Mail content with no code"));
         }
 
         [NoStrict]

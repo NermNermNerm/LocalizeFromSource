@@ -1,6 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 
-namespace LocalizeFromSourceLib
+namespace NermNermNerm.Stardew.LocalizeFromSource
 {
     // It'd be great if we could somehow inherit in static methods, but we can't.  If we could,
     //  this would be a base class that is implementation-independent.  As it is, it's just a

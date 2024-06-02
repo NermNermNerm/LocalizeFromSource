@@ -1,6 +1,6 @@
 ﻿using Mono.Cecil.Cil;
 using Mono.Cecil;
-using LocalizeFromSourceLib;
+using NermNermNerm.Stardew.LocalizeFromSource;
 using System.Diagnostics.CodeAnalysis;
 
 namespace LocalizeFromSource
@@ -143,6 +143,15 @@ namespace LocalizeFromSource
                         foundCall = true;
                         break;
                     }
+                    else if (this.IsCallToSdvMail(instruction))
+                    {
+                        foreach (string localizableSegment in SdvLocalizations.SdvMail(s))
+                        {
+                            reporter.ReportLocalizedString(localizableSegment, ldStrSequencePoint ?? bestSequencePoint);
+                        }
+                        foundCall = true;
+                        break;
+                    }
                     else if (this.IsCallToInvariant(instruction))
                     {
                         // Ignore it.
@@ -196,6 +205,9 @@ namespace LocalizeFromSource
 
         private bool IsCallToSdvEvent(Instruction instruction)
             => this.IsCallToLocalizeMethods(instruction, nameof(SdvLocalizeMethods.SdvEvent));
+
+        private bool IsCallToSdvMail(Instruction instruction)
+            => this.IsCallToLocalizeMethods(instruction, nameof(SdvLocalizeMethods.SdvMail));
 
         private bool IsCallToSdvQuest(Instruction instruction)
             => this.IsCallToLocalizeMethods(instruction, nameof(SdvLocalizeMethods.SdvQuest));

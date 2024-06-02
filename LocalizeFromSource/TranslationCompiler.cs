@@ -1,7 +1,4 @@
-﻿using LocalizeFromSourceLib;
-using Mono.Cecil;
-
-namespace LocalizeFromSource
+﻿namespace LocalizeFromSource
 {
     public abstract class TranslationCompiler
     {

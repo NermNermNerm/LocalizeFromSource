@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34622.214
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LocalizeFromSource", "LocalizeFromSource\LocalizeFromSource.csproj", "{0D3D4CB7-89FF-466B-9547-31CDF6AF3EE4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LocalizeFromSource.Compiler", "LocalizeFromSource\LocalizeFromSource.Compiler.csproj", "{0D3D4CB7-89FF-466B-9547-31CDF6AF3EE4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LocalizeFromSourceLib", "LocalizeFromSourceLib\LocalizeFromSourceLib.csproj", "{E43FE57F-A610-41B9-A8EB-20F2E84F933D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LocalizeFromSource.Library", "LocalizeFromSourceLib\LocalizeFromSource.Library.csproj", "{E43FE57F-A610-41B9-A8EB-20F2E84F933D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LocalizeFromSourceLib.Tests", "LocalizeFromSourceLib.Tests\LocalizeFromSourceLib.Tests.csproj", "{17E0BAC6-9A1A-4C14-85AB-5937BC6D7822}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LocalizeFromSource.Tests", "LocalizeFromSourceLib.Tests\LocalizeFromSource.Tests.csproj", "{17E0BAC6-9A1A-4C14-85AB-5937BC6D7822}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
