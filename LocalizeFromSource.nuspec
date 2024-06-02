@@ -1,7 +1,7 @@
 <package>
   <metadata>
     <id>NermNermNerm.Stardew.LocalizeFromSource</id>
-    <version>1.0.32</version>
+    <version>1.0.34</version>
     <authors>Steve Benz</authors>
     <owners>Steve Benz</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
@@ -9,6 +9,9 @@
     <dependencies>
       <group targetFramework="net6.0" />
     </dependencies>
+    <license type="expression">MIT</license>
+    <projectUrl>https://github.com/NermNermNerm/LocalizeFromSource</projectUrl>
+    <readme>docs\readme.md</readme>
   </metadata>
 
   <files>
@@ -17,5 +20,6 @@
     <file src="ClassLibrary\bin\Debug\net6.0\NermNermNerm.Stardew.LocalizeFromSource.xml" target="lib\net6.0\NermNermNerm.Stardew.LocalizeFromSource.xml" />
     <file src="Compiler\bin\Debug\net8.0\*" target="tools" />
     <file src="build\NermNermNerm.Stardew.LocalizeFromSource.targets" target="build\NermNermNerm.Stardew.LocalizeFromSource.targets" />
+    <file src="readme.md" target="docs\" />
   </files>
 </package>

@@ -190,17 +190,24 @@ format.  That will make it show up as "{{count}} of 6 teleported" in the default
 3. In your ModEntry, add these lines to hook up the translator:
 
 ```C#
+using static NermNermNerm.Stardew.LocalizeFromSource.SdvLocalizeMethods;
+.
+.
+.
+    public override void Entry(IModHelper helper)
+    {
+        // Lets the library know what the locale is
+        Initialize(() => helper.Translation.Locale);
+
+        // Lets the library report errors
+        OnBadTranslation += (message) => this.Monitor.LogOnce(IF($"Translation error: {message}"), LogLevel.Info);
+        OnTranslationFilesCorrupt += (message) => this.Monitor.LogOnce(IF($"Translation error: {message}"), LogLevel.Error);
+
         // Optional - changes localized strings to have umlauts and accent marks to make it easier to see
         //  localized strings when running the game in your native language.
 #if DEBUG
         DoPseudoLoc = true;
 #endif
-
-        // Lets the library know what the locale is at all times
-        LocalizeFromSourceLib.SdvTranslator.GetLocale = () => helper.Translation.Locale;
-        // Lets the library report errors
-        LocalizeFromSourceLib.Translator.OnBadTranslation += (message) => this.Monitor.LogOnce(IF($"Translation error: {message}"), LogLevel.Info);
-        LocalizeFromSourceLib.Translator.OnTranslationFilesCorrupt += (message) => this.Monitor.LogOnce(IF($"Translation error: {message}"), LogLevel.Error);
 ```
 
 4. This step is not actually particular to using this library for localization.  SDV changes the Locale to the one
@@ -215,7 +222,7 @@ this.Helper.Events.Content.LocaleChanged += (_,_) => this.Helper.GameContent.Inv
 5. In each C# file that contains the strings that should be translated add this to the using blocks:
 
 ```C#
-using static LocalizeFromSourceLib.LocalizeMethods;
+using static NermNermNerm.Stardew.LocalizeFromSource.SdvLocalizeMethods;
 ```
 
 6. For each translatable string, wrap them in `L` if they are plain strings, `LF` if they are format strings.
