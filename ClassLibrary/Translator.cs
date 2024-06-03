@@ -46,5 +46,30 @@
         {
             return this.DoPseudoLoc ? s.Replace('e', 'ê').Replace('E', 'É').Replace('a', 'ã').Replace('o', 'ö').Replace('B', 'ß') : s;
         }
+
+        /// <summary>
+        ///   Raised when there is something wrong with the translation files that will prevent it from working in
+        ///   any language other than the source.  The argument is a string containing the nature of the fault.
+        /// </summary>
+        public event Action<string>? OnTranslationFilesCorrupt;
+
+        /// <summary>
+        ///   Raises <see cref="OnTranslationFilesCorrupt"/>.
+        /// </summary>
+        protected virtual void RaiseTranslationFilesCorrupt(string error)
+            => this.OnTranslationFilesCorrupt?.Invoke(error);
+
+        /// <summary>
+        ///   Raised when there is something wrong with the particular target language or some of the translations
+        ///   within the language.
+        /// </summary>
+        public event Action<string>? OnBadTranslation;
+
+
+        /// <summary>
+        ///   Raises <see cref="OnBadTranslation"/>.
+        /// </summary>
+        internal virtual void RaiseBadTranslation(string warning)
+            => this.OnBadTranslation?.Invoke(warning);
     }
 }

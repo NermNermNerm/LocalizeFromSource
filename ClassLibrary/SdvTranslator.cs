@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -8,8 +7,9 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
     /// <summary>
     ///   The Stardew Valley translation mechanism.
     /// </summary>
-    public class SdvTranslator : Translator
+    internal class SdvTranslator : Translator
     {
+        private readonly string i18nFolder;
         private readonly Func<string> localeGetter;
         private readonly string sourceLocale;
         private readonly Lazy<Dictionary<string, string>?> defaultJsonReversed;
@@ -20,11 +20,12 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
         /// <summary>
         ///   Constructor for test overrides.
         /// </summary>
-        internal protected SdvTranslator(Func<string> localeGetter, string sourceLocale = "en-us")
+        internal protected SdvTranslator(Func<string> localeGetter, string sourceLocale, string i18nFolder)
         {
             this.defaultJsonReversed = new(this.GetSourceLanguageReverseLookup);
             this.localeGetter = localeGetter;
             this.sourceLocale = sourceLocale;
+            this.i18nFolder = i18nFolder;
         }
 
         /// <inheritDoc/>
@@ -35,24 +36,9 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
             return TransformSdvFormatStringToCSharpFormatString(targetLanguageFormatString, sourceLanguageFormatString);
         }
 
-        /// <summary>
-        ///   Gets the folder containing the SDV localization files.
-        /// </summary>
-        /// <remarks>This is a test insertion point.</remarks>
-        protected virtual string? GetI18nFolder()
-        {
-            return Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "i18n");
-        }
-
         private Dictionary<string,string>? GetSourceLanguageReverseLookup()
         {
-            string? folder = this.GetI18nFolder();
-            if (folder is null)
-            {
-                return null;
-            }
-
-            string defaultJsonPath = Path.Combine(folder, "default.json");
+            string defaultJsonPath = Path.Combine(this.i18nFolder, "default.json");
             Dictionary<string, string>? keyToSourceStringDictionary;
             try
             {
@@ -99,16 +85,10 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
             translations = new();
             this.translations.Add(localeId, translations);
 
-            string? folder = this.GetI18nFolder();
-            if (folder is null)
-            {
-                return translations;
-            }
-
             string partial = localeId;
             do
             {
-                string translationPath = Path.Combine(folder, partial + ".json");
+                string translationPath = Path.Combine(this.i18nFolder, partial + ".json");
                 if (File.Exists(translationPath))
                 {
                     try
@@ -306,20 +286,5 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
                 return "{" + number.ToString(CultureInfo.InvariantCulture) + fmtSpecifier + "}";
             });
         }
-
-
-        /// <summary>
-        ///   Raises <see cref="SdvLocalizeMethods.OnTranslationFilesCorrupt"/>.
-        /// </summary>
-        /// <remarks>Test classes can override this to validate that these events are generated without having to touch a static.</remarks>
-        protected virtual void RaiseTranslationFilesCorrupt(string error)
-            => SdvLocalizeMethods.RaiseTranslationFilesCorrupt(error);
-
-        /// <summary>
-        ///   Raises <see cref="SdvLocalizeMethods.OnBadTranslation"/>.
-        /// </summary>
-        /// <remarks>Test classes can override this to validate that these events are generated without having to touch a static.</remarks>
-        protected virtual void RaiseBadTranslation(string warning)
-            => SdvLocalizeMethods.RaiseBadTranslation(warning);
     }
 }

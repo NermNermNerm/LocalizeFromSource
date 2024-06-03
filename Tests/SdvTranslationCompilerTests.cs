@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using LocalizeFromSource;
 using Mono.Cecil;
+using NermNermNerm.Stardew.LocalizeFromSource;
 
 namespace LocalizeFromSourceTests
 {
@@ -14,7 +15,7 @@ namespace LocalizeFromSourceTests
         private string locale = "en";
 
         private TestableSdvTranslationCompiler testSubject = null!;
-        private TestableSdvTranslator translator = null!;
+        private SdvTranslator translator = null!;
 
         [TestInitialize]
         public void Initialize()
@@ -32,7 +33,7 @@ namespace LocalizeFromSourceTests
             var assembly = AssemblyDefinition.ReadAssembly(thisAssemblyPath, new ReaderParameters { ReadSymbols = true });
             var combinedConfig = CombinedConfig.Create(assembly, Environment.CurrentDirectory, defaultConfig);
             this.testSubject = new TestableSdvTranslationCompiler(combinedConfig);
-            this.translator = new TestableSdvTranslator(this.i18nFolder, () => this.locale);
+            this.translator = new SdvTranslator(() => this.locale,  "en", this.i18nFolder);
         }
 
         [TestCleanup]
