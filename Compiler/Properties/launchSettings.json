@@ -3,6 +3,10 @@
     "LocalizeFromSource": {
       "commandName": "Project",
       "commandLineArgs": "--dll E:\\repos\\NermNermNerm.Junimatic\\Junimatic\\bin\\Debug\\Junimatic.dll --sourceRoot E:\\repos\\NermNermNerm.Junimatic\\Junimatic"
+    },
+    "QuestableTractor": {
+      "commandName": "Project",
+      "commandLineArgs": "--dll E:\\repos\\NermNermNerm.StardewMods\\QuestableTractor\\bin\\Debug\\QuestableTractor.dll --sourceRoot E:\\repos\\NermNermNerm.StardewMods\\QuestableTractor"
     }
   }
 }

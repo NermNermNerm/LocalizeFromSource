@@ -169,7 +169,7 @@ namespace LocalizeFromSource
 
                 if (!foundCall) // Treat empty strings as invariant.
                 {
-                    if (!isNoStrictMode)
+                    if (!isNoStrictMode && this.config.IsStrict)
                     {
                         reporter.ReportBadString(s, ldStrSequencePoint ?? bestSequencePoint);
                     }
