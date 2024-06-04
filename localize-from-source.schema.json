@@ -1,0 +1,28 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/NermNermNerm/LocalizeFromSource/blob/main/localize-from-source.schema.json",
+    "title": "NermNermNerm.Stardew.LocalizeFromSource configuration",
+    "description": "Settings for the LocalizeFromSource post-compile step",
+    "type": "object",
+    "properties": {
+        "isStrict": {
+            "description": "Specifies whether to report strings that may need localization as errors",
+            "type": "boolean"
+        },
+        "invariantStringPatterns": {
+            "description": ".Net regular expressions that identify strings as being not subject to translation (e.g. paths and identifiers).",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "invariantMethods": {
+            "description": "Fully-qualified method names where the method often takes a constant string argument that is never localized.",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "required": ["isStrict", "invariantStringPatterns", "invariantMethods"]
+}
