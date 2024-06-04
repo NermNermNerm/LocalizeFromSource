@@ -53,18 +53,5 @@ namespace LocalizeFromSource
             int percentIndex = mailString.IndexOf('%');
             yield return (percentIndex < 0) ? mailString : mailString.Substring(0, percentIndex);
         }
-
-        public static IEnumerable<string> DomainSpecificInvariantMethodNames => [
-            "StardewModdingAPI.IAssetName.IsEquivalentTo",
-            "StardewModdingAPI.IAssetName.IsEquivalentTo",
-            "StardewModdingAPI.IAssetName.StartsWith",
-            "StardewModdingAPI.IAssetName.IsDirectlyUnderPath",
-            "StardewValley.Farmer.getFriendshipHeartLevelForNPC",
-            "StardewValley.Game1.playSound",
-            "StardewValley.GameLocation.playSound",
-            "Netcode.NetFields.AddField",
-            "StardewModdingAPI.Events.AssetRequestedEventArgs.LoadFromModFile"
-];
-
     }
 }

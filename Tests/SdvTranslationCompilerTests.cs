@@ -31,7 +31,7 @@ namespace LocalizeFromSourceTests
             Config defaultConfig = new Config(true, Array.Empty<Regex>(), Array.Empty<string>());
             string thisAssemblyPath = Assembly.GetExecutingAssembly().Location;
             var assembly = AssemblyDefinition.ReadAssembly(thisAssemblyPath, new ReaderParameters { ReadSymbols = true });
-            var combinedConfig = CombinedConfig.Create(assembly, Environment.CurrentDirectory, defaultConfig);
+            var combinedConfig = new CombinedConfig(assembly, Environment.CurrentDirectory, defaultConfig);
             this.testSubject = new TestableSdvTranslationCompiler(combinedConfig);
             this.translator = new SdvTranslator(() => this.locale,  "en", this.i18nFolder);
         }

@@ -1,10 +1,14 @@
-﻿namespace LocalizeFromSource
+﻿using System.Text.RegularExpressions;
+
+namespace LocalizeFromSource
 {
     public abstract class TranslationCompiler
     {
         protected bool anyErrorsReported = false;
 
         public const string ErrorPrefix = "LFS";
+
+        private readonly Regex hasAnyLettersInIt = new Regex(@"\p{L}", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         /// <summary>
         ///   Error code when there are changes to the translations and the compiler is running in build lab mode
@@ -22,12 +26,19 @@
 
         public abstract bool GenerateI18nFiles(string projectRoot, bool verifyOnly, IReadOnlyCollection<DiscoveredString> discoveredString);
 
-        protected virtual void Error(int id,  string message)
+        protected virtual void Error(int id, string message)
         {
             // https://learn.microsoft.com/en-us/visualstudio/msbuild/msbuild-diagnostic-format-for-tasks?view=vs-2022
             Console.WriteLine($"LocalizeFromSource : error {ErrorPrefix}{id:4} : {message}");
             anyErrorsReported = true;
         }
+
+        public virtual bool IsKnownInvariantString(string s)
+        {
+            return !hasAnyLettersInIt.IsMatch(s);
+        }
+
+        public virtual IEnumerable<string> DomainSpecificInvariantMethodNames { get; } = ["System.Text.RegularExpressions.Regex..ctor"];
 
         /*
          * 

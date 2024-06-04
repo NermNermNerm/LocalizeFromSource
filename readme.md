@@ -242,8 +242,8 @@ spew(L("hello")); // Okay
 spew(L($"hello {s}")); // Not okay
 spew(LF($"hello {s}")); // Okay, but if s is a string, ensure it's localized appropriately!
 
-spew(L(s)); // Not okay.
-string s = L(s); spew(s); // Okay
+spew(L(condition ? "hello" : "world")); // Not okay.
+spew(condition ? L("hello") : L("world")); // Okay
 ```
 
 Note that this package has both compile-time and run-time elements.  All the faults above generate compile-time errors.

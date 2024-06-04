@@ -22,7 +22,7 @@ namespace LocalizeFromSourceTests
             Config defaultConfig = new Config(true, Array.Empty<Regex>(), Array.Empty<string>());
             string thisAssemblyPath = Assembly.GetExecutingAssembly().Location;
             this.assembly = AssemblyDefinition.ReadAssembly(thisAssemblyPath, new ReaderParameters { ReadSymbols = true });
-            var combinedConfig = CombinedConfig.Create(this.assembly, Environment.CurrentDirectory, defaultConfig);
+            var combinedConfig = new CombinedConfig(this.assembly, Environment.CurrentDirectory, defaultConfig);
             this.testSubject = new Decompiler(combinedConfig);
             this.stubReporter = new StubReporter();
 

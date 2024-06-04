@@ -13,35 +13,26 @@ namespace LocalizeFromSource
     {
         private readonly IReadOnlySet<string> invariantMethodNames;
         private readonly Config userConfig;
-        private readonly Regex hasAnyLettersInIt = new Regex(@"\p{L}", RegexOptions.Compiled | RegexOptions.CultureInvariant);
         private readonly string projectPath;
         private Lazy<string?> gitHubUrlRoot;
         private Lazy<string?> gitRepoRootFolder;
 
-        public static CombinedConfig Create(AssemblyDefinition targetAssembly, string projectPath, Config userConfig)
+        public CombinedConfig(AssemblyDefinition targetAssembly, string projectPath, Config userConfig)
         {
             // Someday this could deduce the project type from the assembly
-
-            var methodNames = GetInvariantMethodNames(targetAssembly, userConfig);
-            return new CombinedConfig(userConfig, methodNames, projectPath);
-        }
-
-
-        private CombinedConfig(Config userConfig, IReadOnlySet<string> invariantMethodNames, string projectPath)
-        {
             this.userConfig = userConfig;
             this.IsStrict = userConfig.IsStrict;
-            this.invariantMethodNames = invariantMethodNames;
             this.projectPath = projectPath;
 
             this.TranslationCompiler = new SdvTranslationCompiler(this);
             this.gitHubUrlRoot = new Lazy<string?>(this.GetGithubBaseUrl);
             this.gitRepoRootFolder = new Lazy<string?>(() => this.ExecuteGitCommand("rev-parse --show-toplevel"));
+            this.invariantMethodNames = this.GetInvariantMethodNames(targetAssembly);
         }
 
         public TranslationCompiler TranslationCompiler { get; }
 
-        public bool IsKnownInvariantString(string s) => !hasAnyLettersInIt.IsMatch(s) || this.userConfig.InvariantStringPatterns.Any(m => m.IsMatch(s));
+        public bool IsKnownInvariantString(string s) => this.TranslationCompiler.IsKnownInvariantString(s) || this.userConfig.InvariantStringPatterns.Any(m => m.IsMatch(s));
 
         public bool IsMethodWithInvariantArgs(string s) => this.invariantMethodNames.Contains(s);
 
@@ -160,7 +151,7 @@ namespace LocalizeFromSource
             return ExecuteGitCommand("rev-parse --abbrev-ref HEAD");
         }
 
-        private static IReadOnlySet<string> GetInvariantMethodNames(AssemblyDefinition dll, Config config)
+        private IReadOnlySet<string> GetInvariantMethodNames(AssemblyDefinition dll)
         {
             HashSet<string> invariantMethods =
             [
@@ -169,16 +160,11 @@ namespace LocalizeFromSource
             ];
 
             // .net standard things that are common enough to warrant a special place in our heart.
-            invariantMethods.UnionWith(new string[]
-            {
-                "System.Text.RegularExpressions.Regex..ctor"
-            });
-
-            invariantMethods.UnionWith(SdvLocalizations.DomainSpecificInvariantMethodNames);
+            invariantMethods.UnionWith(this.TranslationCompiler.DomainSpecificInvariantMethodNames);
 
             invariantMethods.UnionWith(GetMethodsWithCustomAttribute(dll));
 
-            invariantMethods.UnionWith(config.InvariantMethods);
+            invariantMethods.UnionWith(this.userConfig.InvariantMethods);
 
             return invariantMethods;
         }

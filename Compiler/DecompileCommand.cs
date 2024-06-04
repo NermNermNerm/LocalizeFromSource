@@ -72,7 +72,7 @@ namespace LocalizeFromSource
             }
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(settings.DllPath, new ReaderParameters { ReadSymbols = true });
 
-            var combinedConfig = CombinedConfig.Create(assembly, settings.SourceRoot, userConfig);
+            var combinedConfig = new CombinedConfig(assembly, settings.SourceRoot, userConfig);
 
             var decomp = new Decompiler(combinedConfig);
             var reporter = new Reporter(userConfig);
