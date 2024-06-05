@@ -7,13 +7,9 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
     /// <summary>
     ///   The Stardew Valley translation mechanism.
     /// </summary>
-    internal class SdvTranslator : Translator
+    internal class SdvTranslator : KeyValuePairTranslator
     {
         private readonly string i18nFolder;
-        private readonly Func<string> localeGetter;
-        private readonly string sourceLocale;
-        private readonly Lazy<Dictionary<string, string>?> defaultJsonReversed;
-        private readonly Dictionary<string, List<Dictionary<string,string>>> translations = new();
 
         private static readonly JsonSerializerOptions jsonSerializerOptions = new JsonSerializerOptions { AllowTrailingCommas = true, ReadCommentHandling = JsonCommentHandling.Skip };
 
@@ -21,22 +17,22 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
         ///   Constructor for test overrides.
         /// </summary>
         internal protected SdvTranslator(Func<string> localeGetter, string sourceLocale, string i18nFolder)
+            : base(() => SdvLocaleGetter(localeGetter, sourceLocale), sourceLocale)
         {
-            this.defaultJsonReversed = new(this.GetSourceLanguageReverseLookup);
-            this.localeGetter = localeGetter;
-            this.sourceLocale = sourceLocale;
             this.i18nFolder = i18nFolder;
         }
 
-        /// <inheritDoc/>
-        protected override string GetTranslationOfFormatString(string formatStringInSourceLocale)
+        static string SdvLocaleGetter(Func<string> localGetter, string sourceLocale)
         {
-            string sourceLanguageFormatString = TransformCSharpFormatStringToSdvFormatString(formatStringInSourceLocale);
-            var targetLanguageFormatString = this.GetTranslation(sourceLanguageFormatString);
-            return TransformSdvFormatStringToCSharpFormatString(targetLanguageFormatString, sourceLanguageFormatString);
+            // SDV has a problem where the usual method of getting the locale will be wrong and return ""
+            // early in the startup process - but not so early as translations are not asked for already.
+            // Implementations have to basically invalidate all that too-early work, so all we can really
+            // do here is cobble something up so that if the invalidation fails, there's still something shown.
+            string locale = localGetter();
+            return string.IsNullOrEmpty(locale) ? sourceLocale : locale;
         }
 
-        private Dictionary<string,string>? GetSourceLanguageReverseLookup()
+        protected override Dictionary<string, string>? ReadSourceLanguageTable()
         {
             string defaultJsonPath = Path.Combine(this.i18nFolder, "default.json");
             Dictionary<string, string>? keyToSourceStringDictionary;
@@ -54,36 +50,29 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
                 this.RaiseTranslationFilesCorrupt($"Unable to read '{defaultJsonPath}' - translation will not work.  Error was: {ex}");
                 return null;
             }
-
-            Dictionary<string, string> reverseLookup = new Dictionary<string, string>();
-            foreach (var pair in keyToSourceStringDictionary)
-            {
-                if (reverseLookup.ContainsKey(pair.Value))
-                {
-                    this.RaiseTranslationFilesCorrupt($"{defaultJsonPath} was not built by this compiler!  It has multiple keys with the same translation key: {pair.Key} value: '{pair.Value}'.  Translations of this string will not yield accurate results.");
-                }
-                else
-                {
-                    reverseLookup.Add(pair.Value, pair.Key);
-                }
-            };
-
-            return reverseLookup;
+            return keyToSourceStringDictionary;
         }
 
-        /// <summary>
-        ///  Gets a list of translation_key to translated value dictionaries for the given locale, which should
-        ///  be tried in order to get the translation.
-        /// </summary>
-        private List<Dictionary<string,string>> ReadTranslationTables(string localeId)
+        /// <inheritdoc/>
+        /// <remarks>
+        ///  SMAPI has the strategy of merging translations from most-specific to least, e.g. "pt-BR" and then "pt".
+        ///  I don't know that it is ever actually used, and I'm not sure that it would really work well in practice
+        ///  to have them split out like that, but this attempts to replicate that idea.
+        /// </remarks>
+        protected override Dictionary<string, string> ReadTranslationTable(string localeId)
         {
-            if (this.translations.TryGetValue(localeId, out var translations))
-            {
-                return translations;
-            }
+            var table = new Dictionary<string,string>();
 
-            translations = new();
-            this.translations.Add(localeId, translations);
+            void mergeIntoTable(Dictionary<string,string> d)
+            {
+                foreach (var pair in d)
+                {
+                    if (!table.ContainsKey(pair.Key))
+                    {
+                        table.Add(pair.Key, pair.Value);
+                    }
+                }
+            }
 
             string partial = localeId;
             do
@@ -100,7 +89,7 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
                         }
                         else
                         {
-                            translations.Add(dict);
+                            mergeIntoTable(dict);
                         }
                     }
                     catch (Exception ex)
@@ -109,65 +98,10 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
                     }
                 }
 
-                int lastDash = partial.LastIndexOf('-');
-                if (lastDash < 0)
-                {
-                    partial = "";
-                }
-                else
-                {
-                    partial = partial.Substring(0, lastDash);
-                }
+                partial = partial.Substring(0, Math.Max(0, partial.LastIndexOf('-')));
             } while (partial != "");
 
-            return translations;
-        }
-
-        /// <inheritDoc/>
-        protected override string GetTranslation(string stringInSourceLocale)
-        {
-            var reverseLookup = defaultJsonReversed.Value;
-            string currentLocale = localeGetter();
-            if (currentLocale == "")
-            {
-                // SDV sets the locale kinda midway through the loading process - or at least not at the very start.
-                //  Some mod assets just get loaded earlier than that, and so you have to force them to be loaded again,
-                //  after the locale is set.  That's a known problem (at least since 1.6).  See TractorMod as an example.
-                //  It has a LocaleChanged event handler that reloads the one thing that it knows gets loaded before
-                //  the locale is set.  Mods that use this will have to do the same...  In fact, mods that don't use this
-                //  library will have to do the same, as the issue is with the game.
-                return stringInSourceLocale;
-            }
-
-            if (reverseLookup is null)
-            {
-                // Not throwing a InvalidOperation here because it could be a mod-deployment problem rather than a code fault.
-                // Assuming the events are correctly routed, there'll be SMAPI complaints telling the user more about it.
-                return stringInSourceLocale;
-            }
-
-            if (currentLocale.Equals(sourceLocale, StringComparison.OrdinalIgnoreCase))
-            {
-                return stringInSourceLocale;
-            }
-
-            if (!reverseLookup.TryGetValue(stringInSourceLocale, out string? key))
-            {
-                this.RaiseTranslationFilesCorrupt($"The following string is not in the default.json: '{stringInSourceLocale}'");
-                return stringInSourceLocale;
-            }
-
-            var translationTables = this.ReadTranslationTables(currentLocale);
-            foreach (var localeSpecificTranslationTable in translationTables)
-            {
-                if (localeSpecificTranslationTable.TryGetValue(key, out var translation))
-                {
-                    return translation;
-                }
-            }
-
-            this.RaiseBadTranslation($"The following string does not have a translation in {currentLocale}: '{stringInSourceLocale}'");
-            return stringInSourceLocale;
+            return table;
         }
 
         private static readonly Regex sdvEventLocalizableParts = new Regex(
@@ -234,18 +168,25 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
         }
 
 
-        private static readonly Regex dotnetFormatStringPattern = new(@"{(?<argNumber>\d+)(?<formatSpecifier>:[^}]+)?}(\|(?<argName>\w+)\|)?", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+        private static readonly Regex dotNetFormatStringPattern = new(@"{(?<argNumber>\d+)(?<formatSpecifier>:[^}]+)?}(\|(?<argName>\w+)\|)?", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
         private static readonly Regex sdvFormatStringPattern = new Regex(@"{{(?<argName>\w+)(?<formatSpecifier>:[^}]+)?}}", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-
 
         /// <summary>
         ///   Converts a string like "yow {0} ee" to "yow {{arg0}} ee"
         /// </summary>
-        public static string TransformCSharpFormatStringToSdvFormatString(string csharpFormatString)
+        protected override string TransformFormatStringFromDotNet(string dotNetFormatString)
+            => TransformCSharpFormatStringToSdvFormatString(dotNetFormatString);
+
+        /// <summary>
+        ///   Shared with the Compiler.
+        /// </summary>
+        /// <param name="dotNetFormatString"></param>
+        /// <returns></returns>
+        public static string TransformCSharpFormatStringToSdvFormatString(string dotNetFormatString)
         {
             // Not done - validity checking
             //  given names do not conflict or repeat - e.g. "foo {0}|a| bar {0}|b|"  "foo {0}|a| bar {1}|a|"
-            return dotnetFormatStringPattern.Replace(csharpFormatString, (m) =>
+            return dotNetFormatStringPattern.Replace(dotNetFormatString, (m) =>
             {
                 var number = m.Groups["argNumber"].Value;
 
@@ -260,7 +201,7 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
         /// <summary>
         ///   Converts a string like "yow {{arg0}} ee" to "yow {0} ee"
         /// </summary>
-        public static string TransformSdvFormatStringToCSharpFormatString(string translatedSdvFormatString, string sourceSdvFormatString)
+        protected override string TransformFormatStringToDotNet(string translatedSdvFormatString, string sourceSdvFormatString)
         {
             // Note that we assume the original format string was ordered like "foo {0} {1}" and not "foo {1} {0}".
             //  That *is* a valid thing to assume when your format strings are all coming from generated code from
