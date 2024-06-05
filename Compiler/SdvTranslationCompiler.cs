@@ -1,6 +1,8 @@
 ﻿using System.Linq;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Text.Unicode;
 using FuzzySharp;
 using NermNermNerm.Stardew.LocalizeFromSource;
 
@@ -237,17 +239,14 @@ namespace LocalizeFromSource
 
         public static void WriteJsonDictionary<TValue>(string path, Dictionary<string, TValue> dictionary, Func<string,string> stringToSortOrder, string? prefix)
         {
-            File.WriteAllText(path, 
-                
-                (prefix is null ? "" : prefix + Environment.NewLine)
-                + JsonSerializer.Serialize(dictionary, new JsonSerializerOptions()
-                {
-                    WriteIndented = true,
-                    Converters =
-                    {
-                        new SortedDictionaryJsonConverter<TValue>(stringToSortOrder)
-                    }
-                }));
+            var writeOptions = new JsonSerializerOptions()
+            {
+                WriteIndented = true,
+                Encoder = JavaScriptEncoder.Create(UnicodeRanges.All),
+                Converters = { new SortedDictionaryJsonConverter<TValue>(stringToSortOrder) }
+            };
+            var content = (prefix is null ? "" : prefix + Environment.NewLine) + JsonSerializer.Serialize(dictionary, writeOptions);
+            File.WriteAllText(path, content);
         }
 
         private static readonly Regex[] stardewValleySpecificIdentifierPatterns = [
