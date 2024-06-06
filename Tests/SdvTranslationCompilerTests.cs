@@ -26,13 +26,14 @@ namespace LocalizeFromSourceTests
             }
             Directory.CreateDirectory(TestFolderName);
 
-            this.i18nFolder = Path.Combine(Environment.CurrentDirectory, TestFolderName, "i18n");
+            string projectPath = Path.Combine(Environment.CurrentDirectory, TestFolderName);
+            this.i18nFolder = Path.Combine(projectPath, "i18n");
 
             Config defaultConfig = new Config(true, Array.Empty<Regex>(), Array.Empty<string>());
             string thisAssemblyPath = Assembly.GetExecutingAssembly().Location;
             var assembly = AssemblyDefinition.ReadAssembly(thisAssemblyPath, new ReaderParameters { ReadSymbols = true });
-            var combinedConfig = new CombinedConfig(assembly, Environment.CurrentDirectory, defaultConfig);
-            this.testSubject = new TestableSdvTranslationCompiler(combinedConfig);
+            var combinedConfig = new CombinedConfig(assembly, projectPath, defaultConfig);
+            this.testSubject = new TestableSdvTranslationCompiler(combinedConfig, projectPath);
             this.translator = new SdvTranslator(() => this.locale,  "en", this.i18nFolder);
         }
 
@@ -79,13 +80,13 @@ namespace LocalizeFromSourceTests
         public void BasicDefaultJsonTests()
         {
             // Starts from nothing
-            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [new DiscoveredString("one two three", false, "test", 57)]);
+            testSubject.GenerateI18nFiles(false, [new DiscoveredString("one two three", false, "test", 57)]);
             var defaultJson = this.ReadDefaultJson();
             Assert.AreEqual(1, defaultJson!.Count);
             Assert.AreEqual("one two three", defaultJson["000001"]);
 
             // Starts adds new thing, recognizes old thing and leaves it alone.
-            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
+            testSubject.GenerateI18nFiles(false, [
                 new DiscoveredString("one two three", false, "test", 57),
                 new DiscoveredString("a b c", false, "test", 67),
                 ]);
@@ -95,7 +96,7 @@ namespace LocalizeFromSourceTests
             Assert.AreEqual("a b c", defaultJson["000002"]);
 
             // recognizes near match
-            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
+            testSubject.GenerateI18nFiles(false, [
                 new DiscoveredString("one two four", false, "test", 57),
                 new DiscoveredString("a b c", false, "test", 67),
                 ]);
@@ -108,7 +109,7 @@ namespace LocalizeFromSourceTests
         [TestMethod]
         public void FormatTest1()
         {
-            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [new DiscoveredString("one {0}, {1}, and {2}", true, "test", 57)]);
+            testSubject.GenerateI18nFiles(false, [new DiscoveredString("one {0}, {1}, and {2}", true, "test", 57)]);
             var defaultJson = this.ReadDefaultJson();
             Assert.AreEqual(1, defaultJson!.Count);
             Assert.AreEqual("one {{arg0}}, {{arg1}}, and {{arg2}}", defaultJson["000001"]);
@@ -131,7 +132,7 @@ namespace LocalizeFromSourceTests
         public void FormatTest2()
         {
             // Ensure names and format specifiers are respected
-            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false,
+            testSubject.GenerateI18nFiles(false,
                 [new DiscoveredString("one {0:d4}|one|, {1:d3}|two|.", true, "test", 57)]);
             var defaultJson = this.ReadDefaultJson();
             Assert.AreEqual(1, defaultJson!.Count);
@@ -154,13 +155,13 @@ namespace LocalizeFromSourceTests
         public void TranslationTests()
         {
             string deJsonPath = Path.Combine(i18nFolder, "de.json");
-            string deEditsJsonPath = TranslationEdit.MakePath(i18nFolder, "de");
+            string deEditsJsonPath = Path.Combine(i18nFolder, "de.edits.json");
 
             // Add some source language stuff - do it in two passes to guarantee key order for testing purposes
-            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
+            testSubject.GenerateI18nFiles(false, [
                 new DiscoveredString("one two three", false, "test", 57),
                 ]);
-            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
+            testSubject.GenerateI18nFiles(false, [
                 new DiscoveredString("one two three", false, "test", 57),
                 new DiscoveredString("count me in", false, "test", 59)
                 ]);
@@ -179,7 +180,7 @@ namespace LocalizeFromSourceTests
 
             Assert.AreEqual(0, testSubject.Errors.Count);
             // Run in verify mode
-            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), true, [
+            testSubject.GenerateI18nFiles(true, [
                 new DiscoveredString("one two three", false, "test", 57),
                 new DiscoveredString("count me in", false, "test", 59)
                 ]);
@@ -188,12 +189,12 @@ namespace LocalizeFromSourceTests
             Assert.IsFalse(File.Exists(deEditsJsonPath));
 
             // Add a new translation and edit another
-            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
+            testSubject.GenerateI18nFiles(false, [
                 new DiscoveredString("one two three", false, "test", 57),
                 new DiscoveredString("count me in!", false, "test", 59),
                 new DiscoveredString("I added a new thang", false, "test", 61)
                 ]);
-            var edits = TranslationEdit.Read(deEditsJsonPath);
+            var edits = ReadTranslationEditsFile(deEditsJsonPath);
             Assert.AreEqual(2, edits.Count);
             Assert.AreEqual(edits["000002"].oldSource, "count me in");
             Assert.AreEqual(edits["000002"].oldTarget, "ich bin dabei");
@@ -213,13 +214,13 @@ namespace LocalizeFromSourceTests
                 { "000002", edits["000002"] with { newTarget = "ich bin dabei!" } },
                 { "000003", edits["000003"] }
             }));
-            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
+            testSubject.GenerateI18nFiles(false, [
                 new DiscoveredString("one two three", false, "test", 57),
                 new DiscoveredString("count me in!", false, "test", 59),
                 new DiscoveredString("I added a new thang", false, "test", 61)
                 ]);
             // Then it removes the edit we took care of and leaves the one we didn't
-            edits = TranslationEdit.Read(deEditsJsonPath);
+            edits = ReadTranslationEditsFile(deEditsJsonPath);
             Assert.AreEqual(1, edits.Count);
             Assert.AreEqual(edits["000003"].oldSource, null);
             Assert.AreEqual(edits["000003"].oldTarget, null);
@@ -235,7 +236,7 @@ namespace LocalizeFromSourceTests
             {
                 { "000003", edits["000003"] with { newSource = "I added a new thing", newTarget = "Ich habe etwas Neues hinzugefügt" } }
             }));
-            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
+            testSubject.GenerateI18nFiles(false, [
                 new DiscoveredString("one two three", false, "test", 57),
                 new DiscoveredString("count me in!", false, "test", 59),
                 new DiscoveredString("I added a new thing", false, "test", 61)
@@ -248,12 +249,12 @@ namespace LocalizeFromSourceTests
             Assert.AreEqual("Ich habe etwas Neues hinzugefügt", deTranslation["000003"]);
 
             // Now things get out of sync again
-            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
+            testSubject.GenerateI18nFiles(false, [
                 new DiscoveredString("one two three five", false, "test", 57),
                 new DiscoveredString("count me in!", false, "test", 59),
                 new DiscoveredString("I added a new thing", false, "test", 61)
                 ]);
-            edits = TranslationEdit.Read(deEditsJsonPath);
+            edits = ReadTranslationEditsFile(deEditsJsonPath);
             Assert.AreEqual(1, edits.Count);
             Assert.AreEqual(edits["000001"].oldSource, "one two three");
             Assert.AreEqual(edits["000001"].oldTarget, "eins zwei drei");
@@ -266,12 +267,12 @@ namespace LocalizeFromSourceTests
 
 
             // Now things get further out of sync
-            testSubject.GenerateI18nFiles(Path.Combine(Environment.CurrentDirectory, TestFolderName), false, [
+            testSubject.GenerateI18nFiles(false, [
                 new DiscoveredString("one two three four", false, "test", 57),
                 new DiscoveredString("count me in!", false, "test", 59),
                 new DiscoveredString("I added a new thing", false, "test", 61)
                 ]);
-            edits = TranslationEdit.Read(deEditsJsonPath);
+            edits = ReadTranslationEditsFile(deEditsJsonPath);
             Assert.AreEqual(1, edits.Count);
             Assert.AreEqual(edits["000001"].oldSource, "one two three");
             Assert.AreEqual(edits["000001"].oldTarget, "eins zwei drei");
@@ -281,6 +282,23 @@ namespace LocalizeFromSourceTests
             Assert.AreEqual(2, deTranslation!.Count);
             Assert.AreEqual("ich bin dabei!", deTranslation["000002"]);
             Assert.AreEqual("Ich habe etwas Neues hinzugefügt", deTranslation["000003"]);
+        }
+
+        private static Dictionary<string, TranslationEdit> ReadTranslationEditsFile(string path)
+        {
+            if (File.Exists(path))
+            {
+                var result = JsonSerializer.Deserialize<Dictionary<string, TranslationEdit>>(File.ReadAllText(path), new JsonSerializerOptions { ReadCommentHandling = JsonCommentHandling.Skip })!;
+                if (result is null)
+                {
+                    throw new JsonException($"{path} contains just 'null'.");
+                }
+                return result;
+            }
+            else
+            {
+                return new Dictionary<string, TranslationEdit>();
+            }
         }
     }
 }

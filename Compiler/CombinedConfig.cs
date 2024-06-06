@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using System.Web;
 using NermNermNerm.Stardew.LocalizeFromSource;
 using Mono.Cecil;
+using System.Text.Json;
 
 namespace LocalizeFromSource
 {
@@ -17,6 +18,14 @@ namespace LocalizeFromSource
         private Lazy<string?> gitHubUrlRoot;
         private Lazy<string?> gitRepoRootFolder;
 
+        protected static readonly JsonSerializerOptions JsonReaderOptions = new JsonSerializerOptions()
+        {
+            ReadCommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true,
+        };
+
+
+
         public CombinedConfig(AssemblyDefinition targetAssembly, string projectPath, Config userConfig)
         {
             // Someday this could deduce the project type from the assembly
@@ -24,7 +33,7 @@ namespace LocalizeFromSource
             this.IsStrict = userConfig.IsStrict;
             this.projectPath = projectPath;
 
-            this.TranslationCompiler = new SdvTranslationCompiler(this);
+            this.TranslationCompiler = new SdvTranslationCompiler(this, projectPath);
             this.gitHubUrlRoot = new Lazy<string?>(this.GetGithubBaseUrl);
             this.gitRepoRootFolder = new Lazy<string?>(() => this.ExecuteGitCommand("rev-parse --show-toplevel"));
             this.invariantMethodNames = this.GetInvariantMethodNames(targetAssembly);

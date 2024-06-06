@@ -24,7 +24,7 @@ namespace LocalizeFromSource
         public const int LocalizingEmpty = 8;
         public const int BadConfigFile = 9;
 
-        public abstract bool GenerateI18nFiles(string projectRoot, bool verifyOnly, IReadOnlyCollection<DiscoveredString> discoveredString);
+        public abstract bool GenerateI18nFiles(bool verifyOnly, IReadOnlyCollection<DiscoveredString> discoveredString);
 
         protected virtual void Error(int id, string message)
         {

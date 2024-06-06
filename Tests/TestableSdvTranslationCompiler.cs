@@ -10,7 +10,7 @@ namespace LocalizeFromSourceTests
     public class TestableSdvTranslationCompiler
         : SdvTranslationCompiler
     {
-        public TestableSdvTranslationCompiler(CombinedConfig config) : base(config) { }
+        public TestableSdvTranslationCompiler(CombinedConfig config, string projectPath) : base(config, projectPath) { }
 
         public List<string> Errors { get; } = new List<string>();
 

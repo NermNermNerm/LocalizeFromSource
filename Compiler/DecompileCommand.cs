@@ -85,7 +85,7 @@ namespace LocalizeFromSource
                 return 1;
             }
 
-            bool completedWithNoErrors = combinedConfig.TranslationCompiler.GenerateI18nFiles(settings.SourceRoot, false, reporter.LocalizableStrings);
+            bool completedWithNoErrors = combinedConfig.TranslationCompiler.GenerateI18nFiles(false, reporter.LocalizableStrings);
             return completedWithNoErrors ? 0 : 1;
         }
     }
