@@ -119,7 +119,7 @@ namespace LocalizeFromSource
             {
                 var instruction = instructions[pc];
                 var prevInstruction = instruction.Previous;
-                bestSequencePoint = method.DebugInformation.GetSequencePoint(instruction) ?? method.DebugInformation.GetSequencePoint(prevInstruction);
+                bestSequencePoint = method.DebugInformation.GetSequencePoint(instruction) ?? bestSequencePoint;
                 if (instruction.OpCode == OpCodes.Call
                     && instruction.Operand is MethodReference methodRef
                     && this.methodMapping.TryGetValue($"{methodRef.DeclaringType.FullName}.{methodRef.Name}", out var mapping)
@@ -136,6 +136,7 @@ namespace LocalizeFromSource
                 }
             }
 
+            bestSequencePoint = method.DebugInformation.GetSequencePointMapping().Values.FirstOrDefault();
             for (int pc = 0; pc < instructions.Count; ++pc)
             {
                 var instruction = instructions[pc];
