@@ -15,7 +15,7 @@
         /// <summary>
         ///   Gets a translation of <paramref name="stringInSourceLocale"/> - if none can be had,
         ///   it falls back to the source string.  It does not throw exceptions if translation files are missing or corrupt,
-        ///   reporting those with <see cref="SdvLocalizeMethods.OnTranslationFilesCorrupt"/> and <see cref="SdvLocalizeMethods.OnBadTranslation"/> instead.
+        ///   reporting those with <see cref="SdvLocalize.OnTranslationFilesCorrupt"/> and <see cref="SdvLocalize.OnBadTranslation"/> instead.
         /// </summary>
         public string Translate(string stringInSourceLocale)
             => this.ApplyPseudo(this.GetTranslation(stringInSourceLocale));
@@ -35,7 +35,7 @@
         /// <summary>
         ///   Gets a translation of <paramref name="stringInSourceLocale"/> - if none can be had,
         ///   it falls back to the source string.  It does not throw exceptions if translation files are missing or corrupt,
-        ///   reporting those with <see cref="SdvLocalizeMethods.OnTranslationFilesCorrupt"/> and <see cref="SdvLocalizeMethods.OnBadTranslation"/> instead.
+        ///   reporting those with <see cref="SdvLocalize.OnTranslationFilesCorrupt"/> and <see cref="SdvLocalize.OnBadTranslation"/> instead.
         /// </summary>
         protected abstract string GetTranslation(string stringInSourceLocale);
 

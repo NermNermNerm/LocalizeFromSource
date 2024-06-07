@@ -4,9 +4,9 @@ using NermNermNerm.Stardew.LocalizeFromSource;
 namespace LocalizeFromSource
 {
     /// <summary>
-    ///   This is the compiler-side version of <see cref="SdvLocalizeMethods"/>.
+    ///   This is the compiler-side version of <see cref="SdvLocalize"/>.
     /// </summary>
-    public static class SdvLocalizeMethodsCompiler
+    public static class SdvLocalizeCompiler
     {
         public static IEnumerable<string> L(string sourceString) => [sourceString];
         public static IEnumerable<string> LF(string sourceString) => [SdvTranslator.TransformCSharpFormatStringToSdvFormatString(sourceString)]; // ? Shouldn't this do the SDV formatting conversion?
@@ -30,6 +30,17 @@ namespace LocalizeFromSource
         // of overlocalizing is pretty small - hopefully localizers will be able to spot the thing that shouldn't be
         // localized and just copy it verbatim.
 
+        public static IEnumerable<string> SdvQuest(string questString)
+        {
+            var splits = questString.Split('/', 5);
+            return splits.Skip(1).Take(3).Where(s => s != "");
+        }
+
+        public static IEnumerable<string> SdvMail(string mailString)
+        {
+            int percentIndex = mailString.IndexOf('%');
+            yield return (percentIndex < 0) ? mailString : mailString.Substring(0, percentIndex);
+        }
 
         private static readonly Regex sdvLocalizableParts = new Regex(
             @"""(?<localizablePart>[^""]+)""", RegexOptions.Compiled | RegexOptions.CultureInvariant);
@@ -51,16 +62,5 @@ namespace LocalizeFromSource
                 .Select(m => m.Groups["localizablePart"].Value)
                 .Where(s => !paths.IsMatch(s));
 
-        public static IEnumerable<string> SdvQuest(string questString)
-        {
-            var splits = questString.Split('/', 5);
-            return splits.Skip(1).Take(3).Where(s => s != "");
-        }
-
-        public static IEnumerable<string> SdvMail(string mailString)
-        {
-            int percentIndex = mailString.IndexOf('%');
-            yield return (percentIndex < 0) ? mailString : mailString.Substring(0, percentIndex);
-        }
     }
 }

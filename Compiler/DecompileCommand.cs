@@ -75,7 +75,7 @@ namespace LocalizeFromSource
 
             var combinedConfig = new CombinedConfig(assembly, settings.SourceRoot, userConfig);
 
-            var decomp = new Decompiler(combinedConfig, typeof(SdvLocalizeMethodsCompiler), typeof(SdvLocalizeMethods));
+            var decomp = new Decompiler(combinedConfig, typeof(SdvLocalizeCompiler), typeof(SdvLocalize));
             var reporter = new Reporter(userConfig);
             decomp.FindLocalizableStrings(assembly, reporter);
 

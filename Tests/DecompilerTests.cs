@@ -23,7 +23,7 @@ namespace LocalizeFromSourceTests
             string thisAssemblyPath = Assembly.GetExecutingAssembly().Location;
             this.assembly = AssemblyDefinition.ReadAssembly(thisAssemblyPath, new ReaderParameters { ReadSymbols = true });
             var combinedConfig = new CombinedConfig(this.assembly, Environment.CurrentDirectory, defaultConfig);
-            this.testSubject = new(combinedConfig, typeof(SdvLocalizeMethodsCompiler), typeof(SdvLocalizeMethods));
+            this.testSubject = new(combinedConfig, typeof(SdvLocalizeCompiler), typeof(SdvLocalize));
             this.stubReporter = new StubReporter();
 
             this.decompilerTestTarget = assembly.Modules.First().Types.First(t => t.Name == nameof(DecompilerTests)).Methods.First(t => t.Name == nameof(DecompilerTestTarget));
@@ -62,10 +62,10 @@ namespace LocalizeFromSourceTests
         public void DecompilerTestTarget()
         {
             new StardewValley.GameLocation().playSound("ignored domain-listed method");
-            Console.WriteLine(SdvLocalizeMethods.I("should be ignored"));
-            Console.WriteLine(SdvLocalizeMethods.IF($"should be ignored{Environment.NewLine}"));
-            Console.WriteLine(SdvLocalizeMethods.L("should be found"));
-            Console.WriteLine(SdvLocalizeMethods.LF($"should be found{Environment.NewLine}"));
+            Console.WriteLine(SdvLocalize.I("should be ignored"));
+            Console.WriteLine(SdvLocalize.IF($"should be ignored{Environment.NewLine}"));
+            Console.WriteLine(SdvLocalize.L("should be found"));
+            Console.WriteLine(SdvLocalize.LF($"should be found{Environment.NewLine}"));
             this.InvariantByAttribute("ignored by attribute");
             Console.WriteLine("Should be a problem");
         }
@@ -73,15 +73,15 @@ namespace LocalizeFromSourceTests
 
         public void SdvCustomStringsTestTarget()
         {
-            Console.WriteLine(SdvLocalizeMethods.SdvMail("Mail content%code"));
-            Console.WriteLine(SdvLocalizeMethods.SdvMail("Mail content with no code"));
+            Console.WriteLine(SdvLocalize.SdvMail("Mail content%code"));
+            Console.WriteLine(SdvLocalize.SdvMail("Mail content with no code"));
         }
 
         [NoStrict]
         public void NoStrictOverrideTestTarget()
         {
             Console.WriteLine("normally this would be a problem.");
-            Console.WriteLine(SdvLocalizeMethods.L("should be found"));
+            Console.WriteLine(SdvLocalize.L("should be found"));
         }
     }
 

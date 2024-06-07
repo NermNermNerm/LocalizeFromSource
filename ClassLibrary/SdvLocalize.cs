@@ -14,7 +14,7 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
     ///   class and a single instance would serve both of them.  This won't work because each mod
     ///   maintains its own translation table.
     /// </remarks>
-    public static class SdvLocalizeMethods // <- maybe just rename to 'SdvLocalize' ?  'Methods' doesn't really add anything...
+    public static class SdvLocalize
     {
         private static Dictionary<Assembly, SdvTranslator> translators = new Dictionary<Assembly, SdvTranslator>();
 
@@ -69,7 +69,7 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
         }
 
         /// <summary>
-        ///   Localizes either a string literal.
+        ///   Marks a string literal as needing translation.
         /// </summary>
         /// <param name="stringInSourceLocale">
         ///   The string to be used - note that this must be a literal string, not an expression
@@ -83,8 +83,8 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
         ///   Same as <see cref="L"/> except for interpolated strings.
         /// </summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public static string LF(FormattableString s)
-            => EnsureTranslator(Assembly.GetCallingAssembly()).TranslateFormatted(s);
+        public static string LF(FormattableString stringInSourceLocale)
+            => EnsureTranslator(Assembly.GetCallingAssembly()).TranslateFormatted(stringInSourceLocale);
 
         /// <summary>
         ///   Declares that the string is invariant - just here to make it so that you can be declarative
@@ -96,7 +96,7 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
             => stringInSourceLocale;
 
         /// <summary>
-        ///   Declares that the string is invariant - just here to make it so that you can be declarative
+        ///   Declares that the string format is invariant - just here to make it so that you can be declarative
         ///   in your code that your use of the string does not need to be localized and it was not an
         ///   oversight.
         /// </summary>
@@ -132,7 +132,7 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
             => EnsureTranslator(Assembly.GetCallingAssembly()).SdvEvent(formattableString);
 
         /// <summary>
-        ///   Localizes the strings within Stardew Valley Event code.
+        ///   Localizes the strings within Stardew Valley Quest code.
         /// </summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static string SdvQuest(string questString)
@@ -140,13 +140,12 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
 
 
         /// <summary>
-        ///   Localizes the strings within Stardew Valley Event code.
+        ///   Localizes the localizable part of a Stardew Valley mail message.
         /// </summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static string SdvMail(string questString)
             => EnsureTranslator(Assembly.GetCallingAssembly()).SdvMail(questString);
 
-        /// <inheritDoc/>
         private static SdvTranslator EnsureTranslator(Assembly caller)
         {
             if (translators.TryGetValue(caller, out var translator))
