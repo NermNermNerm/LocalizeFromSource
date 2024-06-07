@@ -119,9 +119,8 @@ this package can do that.  Turn on `strict` mode by adding a `LocalizeFromSource
 The other properties assist in weeding out false-positives.  `invariantStringPatterns` allows you to describe strings that can be mechanically identified as non-localizable.  `invariantMethods` allow you to list methods that take
 string identifiers as arguments.
 
-> Note: by the time you read this, these patterns will probably be defaults, so you won't want to use these
-> patterns just as-such.  But you probably will find SDV calls in your code that you commonly use that you'll
-> want to add here.
+> Note: the patterns shown in this example are actually already in the default list of invariant patterns for Stardew Valley.
+> Similarly for the method list.  They're just listed in this example to give you a clearer idea of what to put here.
 
 There will always be cases that you can't mechanically identify or it's just not
 worth the hassle of editing the json, for those cases, you can use `I()`, similar to `L`:
@@ -133,7 +132,7 @@ var c = farmAnimals.Values.Count(a => a.type.Value.EndsWith(I(" Chicken")));
 ### Format strings
 
 The perils of `String.Format(identifier, x, y)` have been known for a long time, and a number of remedies have
-been devised, with varying degrees of effectiveness.  Interpolated strings is certainly one of the most powerful
+been devised with varying degrees of effectiveness.  Interpolated strings is certainly one of the most powerful
 of them, and this package aims to exploit them.  Alas, it can't quite be done seamlessly, you have to use `LF`
 instead of just `L`.  Like so:
 
@@ -190,7 +189,7 @@ format.  That will make it show up as "{{count}} of 6 teleported" in the default
 3. In your ModEntry, add these lines to hook up the translator:
 
 ```C#
-using static NermNermNerm.Stardew.LocalizeFromSource.SdvLocalizeMethods;
+using static NermNermNerm.Stardew.LocalizeFromSource.SdvLocalize;
 .
 .
 .
@@ -222,7 +221,7 @@ this.Helper.Events.Content.LocaleChanged += (_,_) => this.Helper.GameContent.Inv
 5. In each C# file that contains the strings that should be translated add this to the using blocks:
 
 ```C#
-using static NermNermNerm.Stardew.LocalizeFromSource.SdvLocalizeMethods;
+using static NermNermNerm.Stardew.LocalizeFromSource.SdvLocalize;
 ```
 
 6. For each translatable string, wrap them in `L` if they are plain strings, `LF` if they are format strings.
