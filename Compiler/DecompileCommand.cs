@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Mono.Cecil;
+using NermNermNerm.Stardew.LocalizeFromSource;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -74,7 +75,7 @@ namespace LocalizeFromSource
 
             var combinedConfig = new CombinedConfig(assembly, settings.SourceRoot, userConfig);
 
-            var decomp = new Decompiler(combinedConfig);
+            var decomp = new Decompiler(combinedConfig, typeof(SdvLocalizeMethodsCompiler), typeof(SdvLocalizeMethods));
             var reporter = new Reporter(userConfig);
             decomp.FindLocalizableStrings(assembly, reporter);
 

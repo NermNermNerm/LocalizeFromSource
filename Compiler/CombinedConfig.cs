@@ -162,11 +162,7 @@ namespace LocalizeFromSource
 
         private IReadOnlySet<string> GetInvariantMethodNames(AssemblyDefinition dll)
         {
-            HashSet<string> invariantMethods =
-            [
-                typeof(SdvLocalizeMethods).FullName + "." + nameof(SdvLocalizeMethods.I),
-                typeof(SdvLocalizeMethods).FullName + "." + nameof(SdvLocalizeMethods.IF),
-            ];
+            HashSet<string> invariantMethods = new();
 
             // .net standard things that are common enough to warrant a special place in our heart.
             invariantMethods.UnionWith(this.TranslationCompiler.DomainSpecificInvariantMethodNames);

@@ -23,7 +23,7 @@ namespace LocalizeFromSourceTests
             string thisAssemblyPath = Assembly.GetExecutingAssembly().Location;
             this.assembly = AssemblyDefinition.ReadAssembly(thisAssemblyPath, new ReaderParameters { ReadSymbols = true });
             var combinedConfig = new CombinedConfig(this.assembly, Environment.CurrentDirectory, defaultConfig);
-            this.testSubject = new Decompiler(combinedConfig);
+            this.testSubject = new(combinedConfig, typeof(SdvLocalizeMethodsCompiler), typeof(SdvLocalizeMethods));
             this.stubReporter = new StubReporter();
 
             this.decompilerTestTarget = assembly.Modules.First().Types.First(t => t.Name == nameof(DecompilerTests)).Methods.First(t => t.Name == nameof(DecompilerTestTarget));
@@ -61,12 +61,12 @@ namespace LocalizeFromSourceTests
 
         public void DecompilerTestTarget()
         {
-            new StardewValley.GameLocation().playSound("ignored");
+            new StardewValley.GameLocation().playSound("ignored domain-listed method");
             Console.WriteLine(SdvLocalizeMethods.I("should be ignored"));
             Console.WriteLine(SdvLocalizeMethods.IF($"should be ignored{Environment.NewLine}"));
             Console.WriteLine(SdvLocalizeMethods.L("should be found"));
             Console.WriteLine(SdvLocalizeMethods.LF($"should be found{Environment.NewLine}"));
-            this.InvariantByAttribute("ignored");
+            this.InvariantByAttribute("ignored by attribute");
             Console.WriteLine("Should be a problem");
         }
 

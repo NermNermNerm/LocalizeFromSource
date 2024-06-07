@@ -2,20 +2,59 @@
 using Mono.Cecil;
 using NermNermNerm.Stardew.LocalizeFromSource;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 
 namespace LocalizeFromSource
 {
     public class Decompiler
     {
+        private record MethodRunTimeToCompileTimeMapping(bool isFormat, Func<string, IEnumerable<string>> decompile);
+
         private readonly CombinedConfig config;
+        private readonly Dictionary<string, MethodRunTimeToCompileTimeMapping> methodMapping;
 
         // This class has a mess of hard-coded references to SdvLocalizeMethods.  If this gets split out
         //  and used in other contexts, perhaps it could take a type-argument and replace all those hard-coded
         //  references with Reflection-based references.
 
-        public Decompiler(CombinedConfig config)
+        public Decompiler(CombinedConfig config, Type compileTimeMethods, Type runTimeMethods)
         {
             this.config = config;
+            this.methodMapping = new();
+
+            foreach (var runTimeMethod in runTimeMethods.GetMethods(BindingFlags.Public | BindingFlags.Static))
+            {
+                var runTimeParameters = runTimeMethod.GetParameters();
+                if (runTimeMethod.GetGenericArguments().Length > 0 || runTimeParameters.Length != 1
+                    || (runTimeParameters[0].ParameterType != typeof(string) && runTimeParameters[0].ParameterType != typeof(FormattableString)))
+                {
+                    // not one of ours.  Maybe there should be a better way to more clearly mark this?
+                    continue;
+                }
+
+                var compileTimeMethod = compileTimeMethods.GetMethod(runTimeMethod.Name, BindingFlags.Public | BindingFlags.Static);
+                if (compileTimeMethod is null)
+                {
+                    // This is a code fault, not a user error.
+                    throw new InvalidOperationException($"{compileTimeMethods.Name} should have an implementation for {runTimeMethod.Name}.");
+                }
+
+                var compileTimeParameters = compileTimeMethod.GetParameters();
+                if (compileTimeParameters.Length != 1 || compileTimeParameters[0].ParameterType != typeof(string))
+                {
+                    throw new InvalidOperationException($"{compileTimeMethods.FullName}.{compileTimeMethod.Name} should take a single parameter of type string.");
+                }
+
+                if (compileTimeMethod.ReturnType != typeof(IEnumerable<string>))
+                {
+                    throw new InvalidOperationException($"{compileTimeMethods.FullName}.{compileTimeMethod.Name} should return IEnumerable<string>.");
+                }
+
+                methodMapping.Add($"{runTimeMethods.FullName}.{runTimeMethod.Name}",
+                    new MethodRunTimeToCompileTimeMapping(
+                        runTimeParameters[0].ParameterType == typeof(FormattableString),
+                        s => (IEnumerable<string>)compileTimeMethod.Invoke(null, [s])!));
+            }
         }
 
         public void FindLocalizableStrings(AssemblyDefinition assembly, Reporter reporter)
@@ -81,13 +120,21 @@ namespace LocalizeFromSource
                 var instruction = instructions[pc];
                 var prevInstruction = instruction.Previous;
                 bestSequencePoint = method.DebugInformation.GetSequencePoint(instruction) ?? method.DebugInformation.GetSequencePoint(prevInstruction);
-                if (this.IsCallToL(instruction) && prevInstruction.OpCode != OpCodes.Ldstr)
+                if (instruction.OpCode == OpCodes.Call
+                    && instruction.Operand is MethodReference methodRef
+                    && this.methodMapping.TryGetValue($"{methodRef.DeclaringType.FullName}.{methodRef.Name}", out var mapping)
+                    && !mapping.isFormat
+                    && prevInstruction.OpCode != OpCodes.Ldstr)
                 {
-                    reporter.ReportBadUsage(bestSequencePoint, TranslationCompiler.ImproperUseOfMethod, $"The argument to {nameof(SdvLocalizeMethods)}.{nameof(SdvLocalizeMethods.L)} should always be a literal string.  If this is a formatted string, use {nameof(SdvLocalizeMethods.LF)} instead.");
+                    string messagePostFix = "";
+                    string fullName = $"{methodRef.DeclaringType.FullName}.{methodRef.Name}";
+                    if (this.methodMapping.TryGetValue(fullName + "F", out var formatVariant) && formatVariant.isFormat)
+                    {
+                        messagePostFix += $"  If this is a formatted string, perhaps you should be using {methodRef.Name}F?";
+                    }
+                    reporter.ReportBadUsage(bestSequencePoint, TranslationCompiler.ImproperUseOfMethod, $"The argument to {fullName} should always be a literal string." + messagePostFix);
                 }
             }
-
-            // TODO: There may be a similar pattern to protect LocalizeMethods.LF
 
             for (int pc = 0; pc < instructions.Count; ++pc)
             {
@@ -113,50 +160,25 @@ namespace LocalizeFromSource
                 bool foundCall = false;
                 while (pc < instructions.Count && !this.IsLdStrInstruction(instruction, out _))
                 {
-                    if (this.IsCallToL(instruction))
+                    if ((instruction.OpCode == OpCodes.Call || instruction.OpCode == OpCodes.Callvirt || instruction.OpCode == OpCodes.Newobj)
+                        && instruction.Operand is MethodReference methodRef)
                     {
-                        reporter.ReportLocalizedString(s, ldStrSequencePoint ?? bestSequencePoint);
-                        foundCall = true;
-                        break;
-                    }
-                    else if (this.IsCallToLF(instruction))
-                    {
-                        reporter.ReportLocalizedString(SdvTranslator.TransformCSharpFormatStringToSdvFormatString(s), ldStrSequencePoint ?? bestSequencePoint);
-                        foundCall = true;
-                        break;
-                    }
-                    else if (this.IsCallToSdvEvent(instruction))
-                    {
-                        foreach (string localizableSegment in SdvLocalizations.SdvEvent(s))
+                        var methodFullName = $"{methodRef.DeclaringType.FullName}.{methodRef.Name}";
+                        if (this.methodMapping.TryGetValue(methodFullName, out var mapping))
                         {
-                            reporter.ReportLocalizedString(localizableSegment, ldStrSequencePoint ?? bestSequencePoint);
+                            foreach (var subString in mapping.decompile(s))
+                            {
+                                reporter.ReportLocalizedString(subString, ldStrSequencePoint ?? bestSequencePoint);
+                            }
+
+                            foundCall = true;
+                            break;
                         }
-                        foundCall = true;
-                        break;
-                    }
-                    else if (this.IsCallToSdvQuest(instruction))
-                    {
-                        foreach (string localizableSegment in SdvLocalizations.SdvQuest(s))
+                        else if (config.IsMethodWithInvariantArgs(methodFullName))
                         {
-                            reporter.ReportLocalizedString(localizableSegment, ldStrSequencePoint ?? bestSequencePoint);
+                            foundCall = true;
+                            break;
                         }
-                        foundCall = true;
-                        break;
-                    }
-                    else if (this.IsCallToSdvMail(instruction))
-                    {
-                        foreach (string localizableSegment in SdvLocalizations.SdvMail(s))
-                        {
-                            reporter.ReportLocalizedString(localizableSegment, ldStrSequencePoint ?? bestSequencePoint);
-                        }
-                        foundCall = true;
-                        break;
-                    }
-                    else if (this.IsCallToInvariant(instruction))
-                    {
-                        // Ignore it.
-                        foundCall = true;
-                        break;
                     }
 
                     ++pc;
@@ -189,7 +211,7 @@ namespace LocalizeFromSource
             {
                 string s = (string)instruction.Operand;
                 // If the next instruction is L() or this string doesn't match a known invariant pattern
-                if ((instruction.Next is not null && this.IsCallToL(instruction.Next)) || (s != "" && !this.config.IsKnownInvariantString(s)))
+                if ((instruction.Next is not null && this.IsCallToNonFormat(instruction.Next)) || (s != "" && !this.config.IsKnownInvariantString(s)))
                 {
                     loadedString = s;
                     return true;
@@ -200,30 +222,10 @@ namespace LocalizeFromSource
             return false;
         }
 
-        private bool IsCallToL(Instruction instruction)
-            => this.IsCallToLocalizeMethods(instruction, nameof(SdvLocalizeMethods.L));
-
-        private bool IsCallToSdvEvent(Instruction instruction)
-            => this.IsCallToLocalizeMethods(instruction, nameof(SdvLocalizeMethods.SdvEvent));
-
-        private bool IsCallToSdvMail(Instruction instruction)
-            => this.IsCallToLocalizeMethods(instruction, nameof(SdvLocalizeMethods.SdvMail));
-
-        private bool IsCallToSdvQuest(Instruction instruction)
-            => this.IsCallToLocalizeMethods(instruction, nameof(SdvLocalizeMethods.SdvQuest));
-
-        private bool IsCallToInvariant(Instruction instruction)
-            => (instruction.OpCode == OpCodes.Call || instruction.OpCode == OpCodes.Callvirt || instruction.OpCode == OpCodes.Newobj)
-                && instruction.Operand is MethodReference methodRef
-                && this.config.IsMethodWithInvariantArgs(methodRef.DeclaringType.FullName + "." + methodRef.Name);
-
-        private bool IsCallToLF(Instruction instruction)
-            => this.IsCallToLocalizeMethods(instruction, nameof(SdvLocalizeMethods.LF));
-
-        private bool IsCallToLocalizeMethods(Instruction instruction, string methodName)
+        private bool IsCallToNonFormat(Instruction instruction)
             => instruction.OpCode == OpCodes.Call
                 && instruction.Operand is MethodReference methodRef
-                && methodRef.DeclaringType.FullName == typeof(SdvLocalizeMethods).FullName
-                && methodRef.Name == methodName;
+                && this.methodMapping.TryGetValue($"{methodRef.DeclaringType.FullName}.{methodRef.Name}", out var mapping)
+                && !mapping.isFormat;
     }
 }

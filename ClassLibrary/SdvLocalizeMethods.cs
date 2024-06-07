@@ -4,9 +4,17 @@ using System.Runtime.CompilerServices;
 namespace NermNermNerm.Stardew.LocalizeFromSource
 {
     /// <summary>
-    ///   Localization methods.
+    ///   This class provides a static API to minimize the impact of localization on the code being
+    ///   localized.  It implements a per-assembly singleton pattern to map its calls to the translator
+    ///   object associated with the calling assembly.
     /// </summary>
-    public static class SdvLocalizeMethods
+    /// <remarks>
+    ///   Note that we can't just use a plain singleton pattern because multiple mods might be using
+    ///   the exact same version of this library, meaning that a single assembly and a single static
+    ///   class and a single instance would serve both of them.  This won't work because each mod
+    ///   maintains its own translation table.
+    /// </remarks>
+    public static class SdvLocalizeMethods // <- maybe just rename to 'SdvLocalize' ?  'Methods' doesn't really add anything...
     {
         private static Dictionary<Assembly, SdvTranslator> translators = new Dictionary<Assembly, SdvTranslator>();
 
@@ -31,7 +39,7 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
             // Someday: Make a factory pattern that infers the appropriate translation system based on looking at the calling assemblies.
             var translator = new SdvTranslator(localeGetter, sourceLocale, Path.Combine(Path.GetDirectoryName(assemblies.First().Location)!, "i18n"));
 
-            if (assemblies.Any(a => translators.ContainsKey(a)))
+            if (assemblies.Any(translators.ContainsKey))
             {
                 throw new InvalidOperationException($"{nameof(Initialize)} should not be called twice from the same assembly.");
             }
