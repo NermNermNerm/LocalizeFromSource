@@ -143,8 +143,8 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
         ///   Localizes the localizable part of a Stardew Valley mail message.
         /// </summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public static string SdvMail(string questString)
-            => EnsureTranslator(Assembly.GetCallingAssembly()).SdvMail(questString);
+        public static string SdvMail(FormattableString mailFormat)
+            => EnsureTranslator(Assembly.GetCallingAssembly()).SdvMail(mailFormat);
 
         private static SdvTranslator EnsureTranslator(Assembly caller)
         {

@@ -36,10 +36,20 @@ namespace LocalizeFromSource
             return splits.Skip(1).Take(3).Where(s => s != "");
         }
 
-        public static IEnumerable<string> SdvMail(string mailString)
+        // Lifted from SdvLocalize
+        private static readonly Regex sdvMailParser = new Regex(
+            @"^(?<content>[^%]+?)(?<code>%.*?)?(\[#\](?<title>.*))?$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        public static IEnumerable<string> SdvMail(string mailFormatString)
         {
-            int percentIndex = mailString.IndexOf('%');
-            yield return (percentIndex < 0) ? mailString : mailString.Substring(0, percentIndex);
+            var match = sdvMailParser.Match(mailFormatString);
+            // This pattern will never fail to match
+
+            yield return match.Groups["content"].Value;
+            if (match.Groups["title"].Value != "")
+            {
+                yield return match.Groups["title"].Value;
+            }
         }
 
         private static readonly Regex sdvLocalizableParts = new Regex(

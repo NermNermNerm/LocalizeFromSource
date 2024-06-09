@@ -151,20 +151,28 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
             return $"{splits[0]}/{this.ApplyPseudo(this.GetTranslation(splits[1]))}/{loc(splits[2])}/{loc(splits[3])}/{splits[4]}";
         }
 
+        private static readonly Regex sdvMailParser = new Regex(
+            @"^(?<content>[^%]+?)(?<code>%.*?)?(\[#\](?<title>.*))?$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
         /// <summary>
         ///   Localizes the localizable part of SDV mail data.
         /// </summary>
-        public string SdvMail(string mailString)
+        public string SdvMail(FormattableString mailFormat)
         {
-            var firstPercent = mailString.IndexOf('%');
-            if (firstPercent < 0)
+            // See SdvEvent for a discussion of the merits of before vs. after format application.  Same reasoning applies here.
+            string afterFormat = mailFormat.ToString();
+
+            var match = sdvMailParser.Match(afterFormat);
+            // The pattern is loose enough that it will never fail to match.
+
+            string content = ApplyPseudo(this.Translate(match.Groups["content"].Value));
+            string code = match.Groups["code"].Value; // Will equal '' if there is no %item block
+            string title = match.Groups["title"].Value;
+            if (!string.IsNullOrEmpty(title))
             {
-                return this.ApplyPseudo(this.GetTranslation(mailString));
+                title = "[#]" + ApplyPseudo(this.Translate(title));
             }
-            else
-            {
-                return this.ApplyPseudo(this.GetTranslation(mailString.Substring(0, firstPercent))) + mailString.Substring(firstPercent);
-            }
+            return content + code + title;
         }
 
 

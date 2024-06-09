@@ -46,10 +46,14 @@ namespace LocalizeFromSourceTests
         public void CustomSdvStrings()
         {
             testSubject.FindLocalizableStrings(this.sdvCustomTestTarget, this.stubReporter);
-            Assert.AreEqual(2, this.stubReporter.LocalizableStrings.Count);
+            Assert.AreEqual(5, this.stubReporter.LocalizableStrings.Count);
             Assert.IsTrue(this.stubReporter.LocalizableStrings.Any(s => s.localizedString == "Mail content"));
+            Assert.IsTrue(this.stubReporter.LocalizableStrings.Any(s => s.localizedString == "Mail content with all"));
             Assert.IsTrue(this.stubReporter.LocalizableStrings.Any(s => s.localizedString == "Mail content with no code"));
+            Assert.IsTrue(this.stubReporter.LocalizableStrings.Any(s => s.localizedString == "But a title"));
+            Assert.IsTrue(this.stubReporter.LocalizableStrings.Any(s => s.localizedString == "Mail title"));
         }
+
         [TestMethod]
         public void RespectsNoStrictAttribute()
         {
@@ -73,8 +77,9 @@ namespace LocalizeFromSourceTests
 
         public void SdvCustomStringsTestTarget()
         {
-            Console.WriteLine(SdvLocalize.SdvMail("Mail content%code"));
-            Console.WriteLine(SdvLocalize.SdvMail("Mail content with no code"));
+            Console.WriteLine(SdvLocalize.SdvMail($"Mail content%item {123}"));
+            Console.WriteLine(SdvLocalize.SdvMail($"Mail content with no code[#]But a title"));
+            Console.WriteLine(SdvLocalize.SdvMail($"Mail content with all%item {123}%%%item {345}[#]Mail title"));
         }
 
         [NoStrict]
