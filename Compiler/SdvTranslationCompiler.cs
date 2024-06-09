@@ -25,8 +25,18 @@ namespace LocalizeFromSource
                 // CamelCase or pascalCase identifiers - identified by all letters and digits with a lowercase letter right before an uppercase one.
                 new Regex(@"^\w*[\p{Ll}\d][\p{Lu}]\w*$", RegexOptions.Compiled | RegexOptions.CultureInvariant),
 
-                // Qualified item id's (O)blah.blah or (BC)Chest
-                new Regex(@"^\([A-Z]+\)[\p{L}\d\.]+$", RegexOptions.Compiled | RegexOptions.CultureInvariant),
+                // Qualified item id's (O)blah.blah or (BC)Chest or just (O)
+                new Regex(@"^\([A-Z][A-Z]?\)[\p{L}\d\.]*$", RegexOptions.Compiled | RegexOptions.CultureInvariant),
+
+                // Character Ids - Not case-insensitive, as identifier matching is case-insensitive too
+                new Regex(
+                    @"^(Alex|Elliot|Harvey|Sam|Sebastian|Shane|Abigail|Emily|Haley|Leah|Maru|Penny|Caroline|Clint|Demetrius|Dwarf|Evelyn|George|Gus|Jas|Jodi|Kent|Krobus|Leo|Lewis|Linus|Marnie|Pam|Pierre|Robin|Sandy|Vincent|Willy|Wizard)$"
+                    , RegexOptions.Compiled | RegexOptions.CultureInvariant),
+
+                // One-Word Location Ids - also case-insensitive
+                new Regex(
+                    @"^(Farm|Mine|Forest|Woods|Town|Mountain|Beach|Desert|Museum|Saloon)$"
+                    , RegexOptions.Compiled | RegexOptions.CultureInvariant),
             ];
 
         public override bool IsKnownInvariantString(string s)
