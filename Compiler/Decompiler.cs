@@ -101,12 +101,11 @@ namespace LocalizeFromSource
             bool isNoStrictMode =
                 method.CustomAttributes.Any(c => c.AttributeType.FullName == typeof(NoStrictAttribute).FullName)
                 || method.DeclaringType.CustomAttributes.Any(c => c.AttributeType.FullName == typeof(NoStrictAttribute).FullName);
-            var bestSequencePoint = method.DebugInformation.GetSequencePointMapping().Values.FirstOrDefault(); // If there are any, this is random.
+            var lastSequencePointSeen = method.DebugInformation.GetSequencePointMapping().Values.FirstOrDefault(); // If there are any, this is random.
 
-            if ( /* method.Name == "ToString" && */ bestSequencePoint is null)
+            if ( /* method.Name == "ToString" && */ lastSequencePointSeen is null)
             {
-                // Perhaps we should do this any time there is no sequence point information?  Seems like it would
-                // always indicate generated code.
+                // This condition seems to indicate generated code - like code generated for record ToString methods
                 return;
             }
 
@@ -119,7 +118,7 @@ namespace LocalizeFromSource
             {
                 var instruction = instructions[pc];
                 var prevInstruction = instruction.Previous;
-                bestSequencePoint = method.DebugInformation.GetSequencePoint(instruction) ?? bestSequencePoint;
+                lastSequencePointSeen = method.DebugInformation.GetSequencePoint(instruction) ?? lastSequencePointSeen;
                 if (instruction.OpCode == OpCodes.Call
                     && instruction.Operand is MethodReference methodRef
                     && this.methodMapping.TryGetValue($"{methodRef.DeclaringType.FullName}.{methodRef.Name}", out var mapping)
@@ -132,20 +131,24 @@ namespace LocalizeFromSource
                     {
                         messagePostFix += $"  If this is a formatted string, perhaps you should be using {methodRef.Name}F?";
                     }
-                    reporter.ReportBadUsage(bestSequencePoint, TranslationCompiler.ImproperUseOfMethod, $"The argument to {fullName} should always be a literal string." + messagePostFix);
+                    reporter.ReportBadUsage(lastSequencePointSeen, TranslationCompiler.ImproperUseOfMethod, $"The argument to {fullName} should always be a literal string." + messagePostFix);
                 }
             }
 
-            bestSequencePoint = method.DebugInformation.GetSequencePointMapping().Values.FirstOrDefault();
+            lastSequencePointSeen = method.DebugInformation.GetSequencePointMapping().Values.FirstOrDefault();
             for (int pc = 0; pc < instructions.Count; ++pc)
             {
                 var instruction = instructions[pc];
-                bestSequencePoint = method.DebugInformation.GetSequencePoint(instruction) ?? bestSequencePoint;
+                lastSequencePointSeen = method.DebugInformation.GetSequencePoint(instruction) ?? lastSequencePointSeen;
 
                 if (!this.IsLdStrInstruction(instruction, out string? s))
                 {
                     continue;
                 }
+
+                var ldStrSequencePoint = method.DebugInformation.GetSequencePoint(instruction);
+                var lastSequencePointBeforeLdStr = lastSequencePointSeen;
+                var lastSequencePointSinceLdStr = ldStrSequencePoint;
 
                 // The idea here is to start from a 'Ldstr' instruction and proceed forward until we get to a 'call'
                 //  instruction that we recognize - ignoring all the mayhem in between.  Because all the recognized
@@ -153,11 +156,13 @@ namespace LocalizeFromSource
                 //  string to the call correctly.  But we're totally dependent upon the code meeting this assumption.
 
                 var ldStrInstruction = instruction;
-                var ldStrSequencePoint = method.DebugInformation.GetSequencePoint(ldStrInstruction);
 
                 ++pc;
                 instruction = instructions[pc];
-                bestSequencePoint = method.DebugInformation.GetSequencePoint(instruction) ?? bestSequencePoint;
+                // bestSequencePoint is, in decreasing order of priority:
+                //   The sequence point of the ldStr instruction
+                //   The sequence point 
+                lastSequencePointSeen = method.DebugInformation.GetSequencePoint(instruction) ?? lastSequencePointSeen;
                 bool foundCall = false;
                 while (pc < instructions.Count && !this.IsLdStrInstruction(instruction, out _))
                 {
@@ -169,7 +174,7 @@ namespace LocalizeFromSource
                         {
                             foreach (var subString in mapping.decompile(s))
                             {
-                                reporter.ReportLocalizedString(subString, ldStrSequencePoint ?? bestSequencePoint);
+                                reporter.ReportLocalizedString(subString, ldStrSequencePoint ?? lastSequencePointSinceLdStr ?? lastSequencePointBeforeLdStr);
                             }
 
                             foundCall = true;
@@ -186,7 +191,7 @@ namespace LocalizeFromSource
                     if (pc < instructions.Count)
                     {
                         instruction = instructions[pc];
-                        bestSequencePoint = method.DebugInformation.GetSequencePoint(instruction) ?? bestSequencePoint;
+                        lastSequencePointSinceLdStr = method.DebugInformation.GetSequencePoint(instruction) ?? lastSequencePointSinceLdStr;
                     }
                 }
 
@@ -194,7 +199,7 @@ namespace LocalizeFromSource
                 {
                     if (!isNoStrictMode && this.config.IsStrict)
                     {
-                        reporter.ReportBadString(s, ldStrSequencePoint ?? bestSequencePoint);
+                        reporter.ReportBadString(s, ldStrSequencePoint ?? lastSequencePointBeforeLdStr);
                     }
 
                     if (this.IsLdStrInstruction(instruction, out _))
