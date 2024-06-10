@@ -1,25 +1,23 @@
 <package>
   <metadata>
     <id>NermNermNerm.Stardew.LocalizeFromSource</id>
-    <version>1.1.5</version>
+    <version>1.2.3</version>
     <authors>Steve Benz</authors>
     <owners>Steve Benz</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Allows localizing SDV mods without the hassle and risk of moving the strings out of the C#.</description>
-    <dependencies>
-      <group targetFramework="net6.0" />
-    </dependencies>
     <license type="expression">MIT</license>
     <projectUrl>https://github.com/NermNermNerm/LocalizeFromSource</projectUrl>
     <readme>docs\readme.md</readme>
+    <contentFiles>
+      <files include="any/any/src/**/*.*" buildAction="Compile" />
+    </contentFiles>
   </metadata>
 
   <files>
-    <file src="ClassLibrary\bin\Debug\net6.0\NermNermNerm.Stardew.LocalizeFromSource.dll" target="lib\net6.0\NermNermNerm.Stardew.LocalizeFromSource.dll" />
-    <file src="ClassLibrary\bin\Debug\net6.0\NermNermNerm.Stardew.LocalizeFromSource.pdb" target="lib\net6.0\NermNermNerm.Stardew.LocalizeFromSource.pdb" />
-    <file src="ClassLibrary\bin\Debug\net6.0\NermNermNerm.Stardew.LocalizeFromSource.xml" target="lib\net6.0\NermNermNerm.Stardew.LocalizeFromSource.xml" />
     <file src="Compiler\bin\Debug\net8.0\*" target="tools" />
     <file src="build\NermNermNerm.Stardew.LocalizeFromSource.targets" target="build\NermNermNerm.Stardew.LocalizeFromSource.targets" />
     <file src="readme.md" target="docs\" />
+    <file src="ClassLibrary\*.cs" target="contentFiles\cs\any" />
   </files>
 </package>
