@@ -1,4 +1,6 @@
-﻿namespace NermNermNerm.Stardew.LocalizeFromSource
+﻿using System;
+
+namespace NermNermNerm.Stardew.LocalizeFromSource
 {
     /// <summary>
     ///   Decorate a method or class with this if there are a lot of culture-invariant strings and very, very few localizable strings.

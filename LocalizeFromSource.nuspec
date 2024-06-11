@@ -1,7 +1,7 @@
 <package>
   <metadata>
     <id>NermNermNerm.Stardew.LocalizeFromSource</id>
-    <version>1.2.3</version>
+    <version>1.2.7</version>
     <authors>Steve Benz</authors>
     <owners>Steve Benz</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
@@ -18,6 +18,11 @@
     <file src="Compiler\bin\Debug\net8.0\*" target="tools" />
     <file src="build\NermNermNerm.Stardew.LocalizeFromSource.targets" target="build\NermNermNerm.Stardew.LocalizeFromSource.targets" />
     <file src="readme.md" target="docs\" />
-    <file src="ClassLibrary\*.cs" target="contentFiles\cs\any" />
+    <file src="ClassLibrary\ArgumentIsCultureInvariantAttribute.cs" target="contentFiles\cs\any\LocalizeFromSource" />
+    <file src="ClassLibrary\KeyValuePairTranslator.cs" target="contentFiles\cs\any\LocalizeFromSource" />
+    <file src="ClassLibrary\NoStrictAttribute.cs" target="contentFiles\cs\any\LocalizeFromSource" />
+    <file src="ClassLibrary\SdvLocalize.cs" target="contentFiles\cs\any\LocalizeFromSource" />
+    <file src="ClassLibrary\SdvTranslator.cs" target="contentFiles\cs\any\LocalizeFromSource" />
+    <file src="ClassLibrary\Translator.cs" target="contentFiles\cs\any\LocalizeFromSource" />
   </files>
 </package>

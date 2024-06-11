@@ -50,7 +50,7 @@ namespace LocalizeFromSource
         public bool ShouldIgnore(TypeDefinition typeDefinition)
         {
             // TODO: make this not sdv-specific or move something into SdvTranslationCompiler
-            return typeDefinition.Name == "I18n";
+            return typeDefinition.Name == "I18n" || typeDefinition.FullName.StartsWith("NermNermNerm.Stardew.LocalizeFromSource.");
         }
 
         public Uri? TryMakeGithubLink(string? fullPath, int? line)

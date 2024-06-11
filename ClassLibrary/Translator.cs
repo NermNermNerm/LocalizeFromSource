@@ -1,4 +1,6 @@
-﻿namespace NermNermNerm.Stardew.LocalizeFromSource
+﻿using System;
+
+namespace NermNermNerm.Stardew.LocalizeFromSource
 {
     /// <summary>
     ///   The base class for translations.
