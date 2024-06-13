@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -9,57 +8,33 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
 {
     /// <summary>
     ///   This class provides a static API to minimize the impact of localization on the code being
-    ///   localized.  It implements a per-assembly singleton pattern to map its calls to the translator
-    ///   object associated with the calling assembly.
+    ///   localized.
     /// </summary>
-    /// <remarks>
-    ///   Note that we can't just use a plain singleton pattern because multiple mods might be using
-    ///   the exact same version of this library, meaning that a single assembly and a single static
-    ///   class and a single instance would serve both of them.  This won't work because each mod
-    ///   maintains its own translation table.
-    /// </remarks>
     public static class SdvLocalize
     {
-        private static Dictionary<Assembly, SdvTranslator> translators = new Dictionary<Assembly, SdvTranslator>();
+        private static SdvTranslator? translator = null;
+
+#if !NO_STARDEW_REFERENCES
+        // This block will be visible when deployed in the NuGet, but does not compile in the LocalizeFromSource package
+        //  so that we don't have to take a dependency on Stardew Valley.
 
         /// <summary>
-        ///   Sets up Stardew Valley localization.
+        ///   Sets up Stardew Valley localization
         /// </summary>
-        /// <param name="localeGetter">A function that will return the current locale.</param>
-        /// <param name="sourceLocale">The language identifier for the language that your source code is written in.  (E.g. "en").</param>
-        /// <param name="callingAssemblies">
-        ///   If supplied, this is a list of all the assemblies that are accessing the same translation set.
-        ///   If none are supplied, the calling assembly is used.
-        /// </param>
-        public static void Initialize(Func<string>localeGetter, string sourceLocale, params Assembly[] callingAssemblies)
+        /// <param name="mod">The mod.</param>
+        /// <param name="sourceLanguage">The language the strings in the code are written in - defaults to English.</param>
+        /// <param name="doPseudoLocInDebug">If true, applies a tweak to all strings to make it clear that they are subject to translation.</param>
+        public static void Initialize(StardewModdingAPI.Mod mod, string sourceLanguage = "en", bool doPseudoLocInDebug = true)
         {
-            // Right now we're only built for StardewValley, where I think it's completely nonsensical to think that
-            // more than one assembly would be involved in translation, and the compiler doesn't support the idea of
-            // multiple assemblies either (although it wouldn't be hard to make it so).  Still, in the interests of
-            // having a future-resistant API, we'll support an array.
-
-            var assemblies = callingAssemblies.Length == 0 ? [Assembly.GetCallingAssembly()] : callingAssemblies;
-
-            // Someday: Make a factory pattern that infers the appropriate translation system based on looking at the calling assemblies.
-            var translator = new SdvTranslator(localeGetter, sourceLocale, Path.Combine(Path.GetDirectoryName(assemblies.First().Location)!, "i18n"));
-
-            if (assemblies.Any(translators.ContainsKey))
-            {
-                throw new InvalidOperationException($"{nameof(Initialize)} should not be called twice from the same assembly.");
-            }
-
-            foreach (var assembly in assemblies)
-            {
-                translators[assembly] = translator;
-            }
+            translator = new SdvTranslator(() => mod.Helper.Translation.Locale, sourceLanguage, Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "i18n"));
+#if DEBUG
+            DoPseudoLoc = doPseudoLocInDebug;
+#endif
+            OnBadTranslation += (message) => mod.Monitor.LogOnce($"Translation issue: {message}", StardewModdingAPI.LogLevel.Info);
+            OnTranslationFilesCorrupt += (message) => mod.Monitor.LogOnce($"Translation error: {message}", StardewModdingAPI.LogLevel.Error);
         }
 
-        /// <summary>
-        ///   Sets up Stardew Valley localization.
-        /// </summary>
-        public static void Initialize(Func<string> localeGetter)
-            => Initialize(localeGetter, "en", Assembly.GetCallingAssembly());
-
+#endif
 
         /// <summary>
         ///   Set this to true and strings will get tweaked before they are displayed so that it's
@@ -68,8 +43,8 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
         /// </summary>
         public static bool DoPseudoLoc
         {
-            get => EnsureTranslator(Assembly.GetCallingAssembly()).DoPseudoLoc;
-            set => EnsureTranslator(Assembly.GetCallingAssembly()).DoPseudoLoc = value;
+            get => EnsureTranslator().DoPseudoLoc;
+            set => EnsureTranslator().DoPseudoLoc = value;
         }
 
         /// <summary>
@@ -81,14 +56,14 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
         /// </param>
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static string L(string stringInSourceLocale)
-            => EnsureTranslator(Assembly.GetCallingAssembly()).Translate(stringInSourceLocale);
+            => EnsureTranslator().Translate(stringInSourceLocale);
 
         /// <summary>
         ///   Same as <see cref="L"/> except for interpolated strings.
         /// </summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static string LF(FormattableString stringInSourceLocale)
-            => EnsureTranslator(Assembly.GetCallingAssembly()).TranslateFormatted(stringInSourceLocale);
+            => EnsureTranslator().TranslateFormatted(stringInSourceLocale);
 
         /// <summary>
         ///   Declares that the string is invariant - just here to make it so that you can be declarative
@@ -114,8 +89,8 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
         /// </summary>
         public static event Action<string>? OnTranslationFilesCorrupt
         {
-            add => EnsureTranslator(Assembly.GetCallingAssembly()).OnTranslationFilesCorrupt += value;
-            remove => EnsureTranslator(Assembly.GetCallingAssembly()).OnTranslationFilesCorrupt -= value;
+            add => EnsureTranslator().OnTranslationFilesCorrupt += value;
+            remove => EnsureTranslator().OnTranslationFilesCorrupt -= value;
         }
 
         /// <summary>
@@ -124,8 +99,8 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
         /// </summary>
         public static event Action<string>? OnBadTranslation
         {
-            add => EnsureTranslator(Assembly.GetCallingAssembly()).OnBadTranslation += value;
-            remove => EnsureTranslator(Assembly.GetCallingAssembly()).OnBadTranslation -= value;
+            add => EnsureTranslator().OnBadTranslation += value;
+            remove => EnsureTranslator().OnBadTranslation -= value;
         }
 
         /// <summary>
@@ -133,14 +108,14 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
         /// </summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static string SdvEvent(FormattableString formattableString)
-            => EnsureTranslator(Assembly.GetCallingAssembly()).SdvEvent(formattableString);
+            => EnsureTranslator().SdvEvent(formattableString);
 
         /// <summary>
         ///   Localizes the strings within Stardew Valley Quest code.
         /// </summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static string SdvQuest(string questString)
-            => EnsureTranslator(Assembly.GetCallingAssembly()).SdvQuest(questString);
+            => EnsureTranslator().SdvQuest(questString);
 
 
         /// <summary>
@@ -148,18 +123,9 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
         /// </summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static string SdvMail(FormattableString mailFormat)
-            => EnsureTranslator(Assembly.GetCallingAssembly()).SdvMail(mailFormat);
+            => EnsureTranslator().SdvMail(mailFormat);
 
-        private static SdvTranslator EnsureTranslator(Assembly caller)
-        {
-            if (translators.TryGetValue(caller, out var translator))
-            {
-                return translator;
-            }
-            else
-            {
-                throw new InvalidOperationException("The translation type has not been specified yet - ensure there is a call in ModEntry.Entry() to SdvLocalizeMethods.Initialize.");
-            }
-        }
+        private static SdvTranslator EnsureTranslator()
+            => translator ?? throw new InvalidOperationException("The translation type has not been specified yet - ensure there is a call in ModEntry.Entry() to SdvLocalizeMethods.Initialize.");
     }
 }
