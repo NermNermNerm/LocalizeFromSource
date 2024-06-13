@@ -15,7 +15,7 @@
   </metadata>
 
   <files>
-    <file src="Compiler\bin\Debug\net8.0\*" target="tools" />
+    <file src="LfsCompiler\bin\Debug\net8.0\*" target="tools" />
     <file src="build\NermNermNerm.Stardew.LocalizeFromSource.targets" target="build\NermNermNerm.Stardew.LocalizeFromSource.targets" />
     <file src="readme.md" target="docs\" />
     <file src="ClassLibrary\ArgumentIsCultureInvariantAttribute.cs" target="contentFiles\cs\any\LocalizeFromSource" />
