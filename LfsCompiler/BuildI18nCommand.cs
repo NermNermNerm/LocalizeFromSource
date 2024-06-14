@@ -1,11 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
+﻿using System.ComponentModel;
 using System.Text.Json;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Mono.Cecil;
 using NermNermNerm.Stardew.LocalizeFromSource;
 using Spectre.Console;
@@ -13,7 +7,8 @@ using Spectre.Console.Cli;
 
 namespace LocalizeFromSource
 {
-    public class DecompileCommand : Command<DecompileCommand.Settings>
+    [Description("Finds marked localized strings within a DLL and builds translation files for them.")]
+    public class BuildI18nCommand : Command<BuildI18nCommand.Settings>
     {
         public class Settings : CommandSettings
         {

@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <UsingTask TaskName="Exec" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" />
-  <Target Name="RunMyExecutable" AfterTargets="AfterBuild">
-    <Exec Command="&quot;$(MSBuildThisFileDirectory)..\tools\LfsCompiler.exe&quot; -p &quot;$(MSBuildProjectDirectory)&quot; -d &quot;$(TargetPath)&quot;" />
+  <Target Name="BuildI18nFolder" AfterTargets="AfterBuild">
+    <Exec Command="&quot;$(MSBuildThisFileDirectory)..\tools\LfsCompiler.exe&quot; buildI18n -p &quot;$(MSBuildProjectDirectory)&quot; -d &quot;$(TargetPath)&quot;" />
+  </Target>
+  <Target Name="IngestTranslations" DependsOnTargets="Build">
+    <Exec Command="&quot;$(MSBuildThisFileDirectory)..\tools\LfsCompiler.exe&quot; ingest -p &quot;$(MSBuildProjectDirectory)&quot; -t &quot;$(TranslationPath)&quot;" />
   </Target>
 </Project>

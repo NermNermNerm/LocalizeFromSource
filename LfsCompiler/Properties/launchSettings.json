@@ -11,6 +11,10 @@
     "JojaFinancial": {
       "commandName": "Project",
       "commandLineArgs": "--dll E:\\repos\\NermNermNerm.JojaFinancial\\JojaFinancial\\bin\\Debug\\JojaFinancial.dll --sourceRoot E:\\repos\\NermNermNerm.JojaFinancial\\JojaFinancial"
+    },
+    "Ing": {
+      "commandName": "Project",
+      "commandLineArgs": "ingest -t E:\\tmp\\de.json --sourceRoot E:\\repos\\NermNermNerm.JojaFinancial\\JojaFinancial"
     }
   }
 }
