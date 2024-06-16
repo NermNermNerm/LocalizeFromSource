@@ -23,6 +23,10 @@ namespace LocalizeFromSource
         public const int ImproperUseOfMethod = 7;
         public const int LocalizingEmpty = 8;
         public const int BadConfigFile = 9;
+        public const int MissingIngestionFiles = 10;
+        public const int IncompleteTranslation = 11;
+        public const int IncompatibleSource = 12;
+        public const int MungedTranslationFile = 13;
 
         public abstract bool GenerateI18nFiles(bool verifyOnly, IReadOnlyCollection<DiscoveredString> discoveredString);
 

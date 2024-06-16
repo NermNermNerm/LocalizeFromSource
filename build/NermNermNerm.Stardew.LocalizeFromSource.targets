@@ -5,6 +5,6 @@
     <Exec Command="&quot;$(MSBuildThisFileDirectory)..\tools\LfsCompiler.exe&quot; buildI18n -p &quot;$(MSBuildProjectDirectory)&quot; -d &quot;$(TargetPath)&quot;" />
   </Target>
   <Target Name="IngestTranslations" DependsOnTargets="Build">
-    <Exec Command="&quot;$(MSBuildThisFileDirectory)..\tools\LfsCompiler.exe&quot; ingest -p &quot;$(MSBuildProjectDirectory)&quot; -t &quot;$(TranslationPath)&quot;" />
+    <Exec Command="&quot;$(MSBuildThisFileDirectory)..\tools\LfsCompiler.exe&quot; ingest -p &quot;$(MSBuildProjectDirectory)&quot; -t &quot;$(TranslatedFile)&quot; -a &quot;$(TranslationAuthor)&quot;" />
   </Target>
 </Project>
