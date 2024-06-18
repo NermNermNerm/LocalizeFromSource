@@ -172,6 +172,25 @@ namespace LocalizeFromSourceTests
 
             this.locale = "de-de";
             Assert.AreEqual("ich bin dabei", this.translator.Translate("count me in"));
+
+            // Now there are source changes without updates to the translation
+            testSubject.GenerateI18nFiles([
+                new DiscoveredString("one two three four five six", false, "test", 57), // close to the other one
+                new DiscoveredString("count me in", false, "test", 59),
+                new DiscoveredString("I'm new here", false, "test", 61),
+                ]);
+            string newDeJson = this.ReadJsonRaw("de.json");
+            Assert.IsTrue(newDeJson.Contains("// >>>SOURCE STRING CHANGED"));
+            Assert.IsTrue(newDeJson.Contains("four five\""));
+            Assert.IsTrue(newDeJson.Contains("four five six\""));
+
+            Assert.IsTrue(newDeJson.Contains("// >>>MISSING TRANSLATION"));
+            Assert.IsTrue(newDeJson.Contains("new here\""));
+
+            this.translator = new SdvTranslator(() => this.locale, "en", this.i18nFolder);
+            Assert.AreEqual("ich bin dabei", this.translator.Translate("count me in"));
+            Assert.AreEqual("eins zwei drei vier geben", this.translator.Translate("one two three four five six"));
+            Assert.AreEqual("I'm new here", this.translator.Translate("I'm new here"));
         }
 
         private static Dictionary<string, TranslationEdit> ReadTranslationEditsFile(string path)

@@ -101,6 +101,18 @@ namespace LocalizeFromSource
                     foreach (var key in keysInOrder)
                     {
                         string sourceString = keyToSourceStringMap[key];
+                        var discoveredString = foundStringMap[sourceString];
+
+                        Uri? link = this.Config.TryMakeGithubLink(discoveredString.file, discoveredString.line);
+                        if (link is null)
+                        {
+                            writer.WriteLine($"   // ? could not find associated source file ?");
+                        }
+                        else
+                        {
+                            writer.WriteLine($"    // {link}");
+                        }
+
                         if (sourceStringToTranslationsMap.TryGetValue(sourceString, out var translation))
                         {
                             if (translation.IsMachineGenerated)
@@ -115,12 +127,12 @@ namespace LocalizeFromSource
                         }
                         else
                         {
-                            var closeMatch = FindNearestSourceString(sourceString, sourceStringToKeyMap.Keys, minimumScore: 90);
+                            var closeMatch = FindNearestSourceString(sourceString, sourceStringToTranslationsMap.Keys, minimumScore: 90);
                             if (closeMatch is not null)
                             {
                                 translation = sourceStringToTranslationsMap[closeMatch];
                                 writer.WriteLine($"    // >>>SOURCE STRING CHANGED - originally translated by {translation.author}");
-                                writer.WriteLine($"    //      old source string: {JsonSerializer.Serialize(sourceString, this.JsonWriterOptions)}");
+                                writer.WriteLine($"    //    old: {JsonSerializer.Serialize(closeMatch, this.JsonWriterOptions)}");
                             }
                             else
                             {
@@ -128,15 +140,15 @@ namespace LocalizeFromSource
                                 // Missing Translation comment
                             }
                         }
-                        writer.WriteLine($"    // source language string: {JsonSerializer.Serialize(sourceString, this.JsonWriterOptions)}");
+                        writer.WriteLine($"    // source: {JsonSerializer.Serialize(sourceString, this.JsonWriterOptions)}");
 
                         if (translation is not null)
                         {
-                            writer.WriteLine($"   {JsonSerializer.Serialize(key, this.JsonWriterOptions)}: {JsonSerializer.Serialize(translation.translation, this.JsonWriterOptions)}{(key == lastKey ? "" : ",")}");
+                            writer.WriteLine($"    {JsonSerializer.Serialize(key, this.JsonWriterOptions)}: {JsonSerializer.Serialize(translation.translation, this.JsonWriterOptions)}{(key == lastKey ? "" : ",")}");
                         }
                         else
                         {
-                            writer.WriteLine($"   // {JsonSerializer.Serialize(key, this.JsonWriterOptions)}: \"\"{(key == lastKey ? "" : ",")}");
+                            writer.WriteLine($"    // {JsonSerializer.Serialize(key, this.JsonWriterOptions)}: \"\"{(key == lastKey ? "" : ",")}");
                         }
 
                         if (key != lastKey)
