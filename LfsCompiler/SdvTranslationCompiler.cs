@@ -10,12 +10,10 @@ namespace LocalizeFromSource
     public class SdvTranslationCompiler
         : KeyValuePairTranslationCompiler
     {
-        private readonly string i18nFolder;
-
         public SdvTranslationCompiler(CombinedConfig config, string projectPath)
             : base(config)
         {
-            this.i18nFolder = Path.Combine(projectPath, "i18n");
+            this.I18nBuildOutputFolder = Path.Combine(projectPath, "i18n");
         }
 
         private static readonly Regex[] stardewValleySpecificIdentifierPatterns = [
@@ -65,63 +63,34 @@ namespace LocalizeFromSource
         private static readonly Regex LocalePattern = new Regex(@"^\w\w(-\w\w)?$");
 
         protected override IEnumerable<string> GetActiveLocales()
-            => Directory.GetFiles(this.i18nFolder, "*.json")
+            => Directory.GetFiles(this.I18nBuildOutputFolder, "*.json")
                 .Select(fullPath => Path.GetFileNameWithoutExtension(fullPath))
                 .Select(baseFileName => baseFileName.Replace(".edits", ""))
                 .Where(baseFileName => LocalePattern.IsMatch(baseFileName))
                 .Select(localeName => localeName.ToLower(CultureInfo.InvariantCulture))
                 .Distinct();
 
-        protected override string GetPathToEditsFile(string locale) => Path.Combine(i18nFolder, locale + ".edits.json");
-        protected override string GetPathToNewLanguageTemplate() => Path.Combine(i18nFolder, "new-language-template.json");
-        protected override Dictionary<string, string> ReadTranslationTable(string? locale)
+        protected override string I18nBuildOutputFolder { get; }
+
+        protected override string GetPathToBuildOutputForLocale(string? locale)
+            => Path.Combine(this.I18nBuildOutputFolder, locale is null ? "default.json" : (locale + ".json"));
+
+        public override Dictionary<string, string> ReadKeyToSourceMapFile()
         {
-            string path = Path.Combine(this.i18nFolder, locale is null ? "default.json" : (locale + ".json"));
-            Dictionary<string, string>? contents = null;
-            if (File.Exists(path))
+            // This path is SDV-specific.
+            string keyToSourceStringFile = Path.Combine(this.Config.ProjectPath, "i18n", "default.json");
+            try
             {
-                try
-                {
-                    contents = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(path), this.GetJsonReaderOptions());
-                    if (contents is null)
-                    {
-                        this.Error(DefaultJsonUnusable, $"Unable to read {path}: Its content is null");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    this.Error(DefaultJsonUnusable, $"Unable to read {path}: {ex.Message}");
-                }
+                // This file format is sdv-specific.
+                return JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(keyToSourceStringFile), this.JsonReaderOptions)
+                    ?? throw new JsonException("File should not contain just null");
             }
-
-            if (contents is null)
+            catch (Exception ex)
             {
-                contents = new();
+                throw new FatalErrorException($"Could not read {keyToSourceStringFile}: {ex.Message}", TranslationCompiler.BadFile, ex);
             }
-
-            contents.Remove("place-holder");
-
-            return contents;
         }
 
-        protected override void SaveTranslationTable(string? locale, Dictionary<string, string> newTranslations, Func<string, string> keyToSortOrder)
-        {
-            string path = Path.Combine(this.i18nFolder, locale is null ? "default.json" : (locale + ".json"));
-            if (newTranslations.Any())
-            {
-                WriteJsonDictionary(path, newTranslations, keyToSortOrder, DoNotEditComment);
-            }
-            else // Empty translation
-            {
-                if (locale is null)
-                {
-                    WriteJsonDictionary(path, new Dictionary<string, string>() { { "place-holder", "this mod is not ready to be localized" } }, keyToSortOrder, DoNotEditComment);
-                }
-                else
-                {
-                    File.Delete(path);
-                }
-            }
-        }
+
     }
 }

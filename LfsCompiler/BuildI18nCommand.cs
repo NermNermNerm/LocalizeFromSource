@@ -46,29 +46,10 @@ namespace LocalizeFromSource
 
         public override int Execute(CommandContext context, Settings settings)
         {
-            string configPath = Path.Combine(settings.SourceRoot, "LocalizeFromSourceConfig.json");
-            Config? userConfig = new Config();
-            if (File.Exists(configPath))
-            {
-                try
-                {
-                    var options = new JsonSerializerOptions() { PropertyNameCaseInsensitive = true, ReadCommentHandling = JsonCommentHandling.Skip };
-                    options.Converters.Add(new RegexJsonConverter());
-                    userConfig = JsonSerializer.Deserialize<Config>(File.ReadAllText(configPath), options);
-                    if (userConfig is null)
-                    {
-                        throw new JsonException("null is not expected");
-                    }
-                }
-                catch(Exception ex)
-                {
-                    Console.Error.WriteLine($"error {TranslationCompiler.ErrorPrefix}{TranslationCompiler.BadConfigFile:d4}: {ex.Message}");
-                    return 1;
-                }
-            }
+            var userConfig = Config.ReadFromFile(settings.SourceRoot);
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(settings.DllPath, new ReaderParameters { ReadSymbols = true });
 
-            var combinedConfig = new CombinedConfig(assembly, settings.SourceRoot, userConfig);
+            var combinedConfig = new CombinedConfig(GetMethodsWithCustomAttribute(assembly), settings.SourceRoot, userConfig);
 
             var decomp = new Decompiler(combinedConfig, typeof(SdvLocalizeCompiler), typeof(SdvLocalize));
             var reporter = new Reporter(userConfig);
@@ -81,8 +62,27 @@ namespace LocalizeFromSource
                 return 1;
             }
 
-            bool completedWithNoErrors = combinedConfig.TranslationCompiler.GenerateI18nFiles(false, reporter.LocalizableStrings);
+            bool completedWithNoErrors = combinedConfig.TranslationCompiler.GenerateI18nFiles(reporter.LocalizableStrings);
             return completedWithNoErrors ? 0 : 1;
         }
+
+        public static IEnumerable<string> GetMethodsWithCustomAttribute(AssemblyDefinition assembly)
+        {
+            foreach (var module in assembly.Modules)
+            {
+                foreach (var type in module.Types)
+                {
+                    foreach (var method in type.Methods)
+                    {
+                        if (method.CustomAttributes.Any(c => c.AttributeType.FullName == typeof(ArgumentIsCultureInvariantAttribute).FullName))
+                        {
+                            yield return $"{method.DeclaringType.FullName}.{method.Name}";
+                        }
+                    }
+                }
+            }
+        }
+
+
     }
 }

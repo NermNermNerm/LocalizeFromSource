@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -42,5 +43,29 @@ namespace LocalizeFromSource
         ///   invariant strings.
         /// </summary>
         public IReadOnlyCollection<string> InvariantMethods { get; }
+
+        /// <summary>
+        ///   Reads the config file and returns it if it's present.
+        /// </summary>
+        public static Config ReadFromFile(string sourceRoot)
+        {
+            string configPath = Path.Combine(sourceRoot, "LocalizeFromSourceConfig.json");
+            Config userConfig = new Config();
+            if (!File.Exists(configPath))
+            {
+                return new Config();
+            }
+
+            try
+            {
+                var options = new JsonSerializerOptions() { PropertyNameCaseInsensitive = true, ReadCommentHandling = JsonCommentHandling.Skip };
+                options.Converters.Add(new RegexJsonConverter());
+                return JsonSerializer.Deserialize<Config>(File.ReadAllText(configPath), options) ?? throw new JsonException("null is not expected");
+            }
+            catch (Exception ex)
+            {
+                throw new FatalErrorException(ex.Message, TranslationCompiler.BadConfigFile, ex);
+            }
+        }
     }
 }

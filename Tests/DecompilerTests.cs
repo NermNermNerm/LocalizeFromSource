@@ -22,7 +22,8 @@ namespace LocalizeFromSourceTests
             Config defaultConfig = new Config(true, Array.Empty<Regex>(), Array.Empty<string>());
             string thisAssemblyPath = Assembly.GetExecutingAssembly().Location;
             this.assembly = AssemblyDefinition.ReadAssembly(thisAssemblyPath, new ReaderParameters { ReadSymbols = true });
-            var combinedConfig = new CombinedConfig(this.assembly, Environment.CurrentDirectory, defaultConfig);
+            var invariantMethods = BuildI18nCommand.GetMethodsWithCustomAttribute(this.assembly);
+            var combinedConfig = new CombinedConfig(invariantMethods, Environment.CurrentDirectory, defaultConfig);
             this.testSubject = new(combinedConfig, typeof(SdvLocalizeCompiler), typeof(SdvLocalize));
             this.stubReporter = new StubReporter();
 

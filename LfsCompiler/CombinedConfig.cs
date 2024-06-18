@@ -14,7 +14,6 @@ namespace LocalizeFromSource
     {
         private readonly IReadOnlySet<string> invariantMethodNames;
         private readonly Config userConfig;
-        private readonly string projectPath;
         private Lazy<string?> gitHubUrlRoot;
         private Lazy<string?> gitRepoRootFolder;
 
@@ -24,20 +23,24 @@ namespace LocalizeFromSource
             AllowTrailingCommas = true,
         };
 
-
-
-        public CombinedConfig(AssemblyDefinition targetAssembly, string projectPath, Config userConfig)
+        public CombinedConfig(IEnumerable<string> additionalInvariantMethodNames, string projectPath, Config userConfig)
         {
             // Someday this could deduce the project type from the assembly
             this.userConfig = userConfig;
             this.IsStrict = userConfig.IsStrict;
-            this.projectPath = projectPath;
+            this.ProjectPath = projectPath;
 
             this.TranslationCompiler = new SdvTranslationCompiler(this, projectPath);
             this.gitHubUrlRoot = new Lazy<string?>(this.GetGithubBaseUrl);
             this.gitRepoRootFolder = new Lazy<string?>(() => this.ExecuteGitCommand("rev-parse --show-toplevel"));
-            this.invariantMethodNames = this.GetInvariantMethodNames(targetAssembly);
+            this.invariantMethodNames = this.GetInvariantMethodNames(additionalInvariantMethodNames);
         }
+
+        public CombinedConfig(string projectPath, Config userConfig)
+            : this(Array.Empty<string>(), projectPath, userConfig)
+        { }
+
+        public string ProjectPath { get; }
 
         public TranslationCompiler TranslationCompiler { get; }
 
@@ -118,7 +121,7 @@ namespace LocalizeFromSource
             {
                 FileName = "git",
                 Arguments = command,
-                WorkingDirectory = this.projectPath,
+                WorkingDirectory = this.ProjectPath,
                 RedirectStandardOutput = true,
                 UseShellExecute = false,
             };
@@ -160,35 +163,18 @@ namespace LocalizeFromSource
             return ExecuteGitCommand("rev-parse --abbrev-ref HEAD");
         }
 
-        private IReadOnlySet<string> GetInvariantMethodNames(AssemblyDefinition dll)
+        private IReadOnlySet<string> GetInvariantMethodNames(IEnumerable<string> invariantMethodNamesFromAssembly)
         {
             HashSet<string> invariantMethods = new();
 
             // .net standard things that are common enough to warrant a special place in our heart.
             invariantMethods.UnionWith(this.TranslationCompiler.DomainSpecificInvariantMethodNames);
 
-            invariantMethods.UnionWith(GetMethodsWithCustomAttribute(dll));
+            invariantMethods.UnionWith(invariantMethodNamesFromAssembly);
 
             invariantMethods.UnionWith(this.userConfig.InvariantMethods);
 
             return invariantMethods;
-        }
-
-        private static IEnumerable<string> GetMethodsWithCustomAttribute(AssemblyDefinition assembly)
-        {
-            foreach (var module in assembly.Modules)
-            {
-                foreach (var type in module.Types)
-                {
-                    foreach (var method in type.Methods)
-                    {
-                        if (method.CustomAttributes.Any(c => c.AttributeType.FullName == typeof(ArgumentIsCultureInvariantAttribute).FullName))
-                        {
-                            yield return $"{method.DeclaringType.FullName}.{method.Name}";
-                        }
-                    }
-                }
-            }
         }
 
     }
