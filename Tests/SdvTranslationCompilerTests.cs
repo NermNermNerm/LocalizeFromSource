@@ -151,34 +151,37 @@ namespace LocalizeFromSourceTests
         [TestMethod]
         public void TranslationTests()
         {
-            string deIncomingPath = Path.Combine(this.projectFolder, "de.json");
-
+            // Start with English-only
             testSubject.GenerateI18nFiles([
                 new DiscoveredString("one two three four five", false, "test", 57),
                 new DiscoveredString("count me in", false, "test", 59)
                 ]);
 
-            string translatedDePath = Path.Combine(this.projectFolder, "de.json");
+            // Now do a translation by reading the built default.json and replacing English with German
             string translatedContent = this.ReadJsonRaw("default.json")
-                .Replace("one two three four five", "eins zwei drei vier geben")
+                .Replace("one two three four five", "eins zwei drei vier fünf")
                 .Replace("count me in", "ich bin dabei");
+            string translatedDePath = Path.Combine(this.projectFolder, "de.json");
             File.WriteAllText(translatedDePath, translatedContent);
 
+            // Rebuild with our German translation
             testSubject.IngestTranslatedFile(translatedDePath, "nexus:TestyMcTester");
             testSubject.GenerateI18nFiles([
                 new DiscoveredString("one two three four five", false, "test", 57),
                 new DiscoveredString("count me in", false, "test", 59)
                 ]);
 
+            // Validate that it translates
             this.locale = "de-de";
             Assert.AreEqual("ich bin dabei", this.translator.Translate("count me in"));
 
-            // Now there are source changes without updates to the translation
+            // But then the source changes...
             testSubject.GenerateI18nFiles([
                 new DiscoveredString("one two three four five six", false, "test", 57), // close to the other one
                 new DiscoveredString("count me in", false, "test", 59),
                 new DiscoveredString("I'm new here", false, "test", 61),
                 ]);
+            // ...and the built German translation has complaints in it...
             string newDeJson = this.ReadJsonRaw("de.json");
             Assert.IsTrue(newDeJson.Contains("// >>>SOURCE STRING CHANGED"));
             Assert.IsTrue(newDeJson.Contains("four five\""));
@@ -186,11 +189,38 @@ namespace LocalizeFromSourceTests
 
             Assert.IsTrue(newDeJson.Contains("// >>>MISSING TRANSLATION"));
             Assert.IsTrue(newDeJson.Contains("new here\""));
+            this.translator = new SdvTranslator(() => this.locale, "en", this.i18nFolder);
+            // ...this source didn't change - no drama here
+            Assert.AreEqual("ich bin dabei", this.translator.Translate("count me in"));
+            // ...this source changed only slightly, so it uses the old translation
+            Assert.AreEqual("eins zwei drei vier fünf", this.translator.Translate("one two three four five six"));
+            // ...new translations get dumped as-is
+            Assert.AreEqual("I'm new here", this.translator.Translate("I'm new here"));
 
+            // Now a new translator comes to our rescue
+            translatedContent = newDeJson
+                .Replace("\"eins zwei drei vier fünf\"", "\"eins zwei drei vier fünf sechs\"")
+                .Replace("// \"", "\"")
+                .Replace("\"\"", "\"Ich bin neu hier\"");
+            File.WriteAllText(translatedDePath, translatedContent);
+            testSubject.IngestTranslatedFile(translatedDePath, "nexus:NoobyMcNewb");
+            testSubject.GenerateI18nFiles([
+                new DiscoveredString("one two three four five six", false, "test", 57), // close to the other one
+                new DiscoveredString("count me in", false, "test", 59),
+                new DiscoveredString("I'm new here", false, "test", 61),
+                ]);
+            newDeJson = this.ReadJsonRaw("de.json");
+            // The updated built de.json is now clean...
+            Assert.IsFalse(newDeJson.Contains(">>>"));
+            // ...and credits both translators
+            Assert.IsTrue(newDeJson.Contains("NoobyMcNewb"));
+            Assert.IsTrue(newDeJson.Contains("TestyMcTester"));
+
+            // ...and all the translations work again
             this.translator = new SdvTranslator(() => this.locale, "en", this.i18nFolder);
             Assert.AreEqual("ich bin dabei", this.translator.Translate("count me in"));
-            Assert.AreEqual("eins zwei drei vier geben", this.translator.Translate("one two three four five six"));
-            Assert.AreEqual("I'm new here", this.translator.Translate("I'm new here"));
+            Assert.AreEqual("eins zwei drei vier fünf sechs", this.translator.Translate("one two three four five six"));
+            Assert.AreEqual("Ich bin neu hier", this.translator.Translate("I'm new here"));
         }
 
         private static Dictionary<string, TranslationEdit> ReadTranslationEditsFile(string path)

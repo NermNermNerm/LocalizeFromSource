@@ -209,11 +209,12 @@ namespace LocalizeFromSource
             // Going in the order it was found in the source file seems like useless pedantry, but I suppose it's better than hash-order
             foreach (string key in keyOrderPerNewTranslations)
             {
-                if (!alreadyTranslatedStrings.Contains(key))
+                string sourceString = keyToSourceStringMap[key];
+                if (!alreadyTranslatedStrings.Contains(sourceString))
                 {
                     // keyToSourceStringMap[key] exists because we threw the "The incoming translation file contains translations..." exception above if it wasn't there.
                     // keyToNewTranslationMap[key] exists because ReadIncomingTranslationFile produced it and guarantees it.
-                    finishedList.Add(new TranslationEntry(keyToSourceStringMap[key], keyToNewTranslationMap[key], author, ingestionDate));
+                    finishedList.Add(new TranslationEntry(sourceString, keyToNewTranslationMap[key], author, ingestionDate));
                 }
             }
 
