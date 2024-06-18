@@ -14,6 +14,7 @@ namespace LocalizeFromSource
             : base(config)
         {
             this.I18nBuildOutputFolder = Path.Combine(projectPath, "i18n");
+            this.I18nSourceFolder = Path.Combine(projectPath, "i18nSource");
         }
 
         private static readonly Regex[] stardewValleySpecificIdentifierPatterns = [
@@ -62,15 +63,24 @@ namespace LocalizeFromSource
 
         private static readonly Regex LocalePattern = new Regex(@"^\w\w(-\w\w)?$");
 
-        protected override IEnumerable<string> GetActiveLocales()
-            => Directory.GetFiles(this.I18nBuildOutputFolder, "*.json")
-                .Select(fullPath => Path.GetFileNameWithoutExtension(fullPath))
-                .Select(baseFileName => baseFileName.Replace(".edits", ""))
-                .Where(baseFileName => LocalePattern.IsMatch(baseFileName))
-                .Select(localeName => localeName.ToLower(CultureInfo.InvariantCulture))
-                .Distinct();
+        protected override IEnumerable<string> GetLocalesWithTranslations()
+        {
+            if (Directory.Exists(this.I18nSourceFolder))
+            {
+                return Directory.GetFiles(this.I18nSourceFolder, "*.json")
+                    .Select(fullPath => Path.GetFileNameWithoutExtension(fullPath))
+                    .Where(baseFileName => LocalePattern.IsMatch(baseFileName))
+                    .Select(localeName => localeName.ToLower(CultureInfo.InvariantCulture));
+            }
+            else
+            {
+                return Enumerable.Empty<string>();
+            }
+        }
 
         protected override string I18nBuildOutputFolder { get; }
+
+        protected override string I18nSourceFolder { get; }
 
         protected override string GetPathToBuildOutputForLocale(string? locale)
             => Path.Combine(this.I18nBuildOutputFolder, locale is null ? "default.json" : (locale + ".json"));
@@ -90,7 +100,5 @@ namespace LocalizeFromSource
                 throw new FatalErrorException($"Could not read {keyToSourceStringFile}: {ex.Message}", TranslationCompiler.BadFile, ex);
             }
         }
-
-
     }
 }

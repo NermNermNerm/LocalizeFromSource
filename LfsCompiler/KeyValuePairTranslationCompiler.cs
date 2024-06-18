@@ -25,8 +25,9 @@ namespace LocalizeFromSource
 
         public CombinedConfig Config { get; }
 
-        protected abstract IEnumerable<string> GetActiveLocales();
+        protected abstract IEnumerable<string> GetLocalesWithTranslations();
         protected abstract string I18nBuildOutputFolder { get; }
+        protected abstract string I18nSourceFolder { get; }
         protected abstract string GetPathToBuildOutputForLocale(string? locale);
 
         public override bool GenerateI18nFiles(IReadOnlyCollection<DiscoveredString> discoveredStrings)
@@ -59,7 +60,7 @@ namespace LocalizeFromSource
             var lastKey = keysInOrder.LastOrDefault();
 
             Directory.CreateDirectory(this.I18nBuildOutputFolder);
-            using (var writer = new StreamWriter(File.OpenWrite(this.GetPathToBuildOutputForLocale(locale: null))))
+            using (var writer = new StreamWriter(File.Create(this.GetPathToBuildOutputForLocale(locale: null))))
             {
                 writer.WriteLine("// TODO: Notes on how to use it");
                 writer.WriteLine("// TODO: Record the commit");
@@ -87,12 +88,12 @@ namespace LocalizeFromSource
                 writer.WriteLine("}");
             }
 
-            foreach (string locale in this.GetActiveLocales())
+            foreach (string locale in this.GetLocalesWithTranslations())
             {
                 var translations = this.ReadTranslationEntryList(locale);
                 var sourceStringToTranslationsMap = translations.ToDictionary(e => e.source);
 
-                using (var writer = new StreamWriter(File.OpenWrite(this.GetPathToBuildOutputForLocale(locale: null))))
+                using (var writer = new StreamWriter(File.Create(this.GetPathToBuildOutputForLocale(locale))))
                 {
                     writer.WriteLine("// TODO: Notes on how to use it");
                     writer.WriteLine("// TODO: Record the commit");
@@ -149,6 +150,64 @@ namespace LocalizeFromSource
 
             return !this.anyErrorsReported;
         }
+
+
+        public void IngestTranslatedFile(string translationPath, string author)
+        {
+            DateTime ingestionDate = DateTime.Now;
+            Dictionary<string, string> keyToSourceStringMap = this.ReadKeyToSourceMapFile();
+            string locale = this.GetLocaleOfIncomingTranslationFile(translationPath);
+            (var keyToNewTranslationMap, var keyOrderPerNewTranslations, var commitTranslationWasBuiltFrom) = this.ReadIncomingTranslationFile(translationPath);
+            var oldTranslationEntryList = this.ReadTranslationEntryList(locale);
+
+            var keysThatHaveTranslationsButAreNotPresentAnymore = keyToNewTranslationMap.Keys.Where(k => !keyToSourceStringMap.ContainsKey(k)).ToArray();
+            if (keysThatHaveTranslationsButAreNotPresentAnymore.Length > 0)
+            {
+                // This we consider fatal because our only recourse is to throw away the translation because we have no sure way to map the translation to a source string
+                throw new FatalErrorException($"The incoming translation file contains translations for strings that are not present in your compile.  That probably means that you are not checked out to the commit that the translator used to write the translation ({commitTranslationWasBuiltFrom}).  You need to create a branch from that commit and ingest there.  Missing key(s): {string.Join(", ", keysThatHaveTranslationsButAreNotPresentAnymore)}", TranslationCompiler.IngestingOutOfSync);
+            }
+            bool translationIsComplete = keyToSourceStringMap.Keys.All(keyToNewTranslationMap.ContainsKey);
+
+            Dictionary<string, string> newSourceToTranslationMap = new(); // TODO:
+            Dictionary<string, string> sourceToKeyMap = keyToSourceStringMap.ToDictionary(pair => pair.Value, pair => pair.Key);
+
+            HashSet<string> alreadyTranslatedStrings = new();
+            List<TranslationEntry> finishedList = new();
+            foreach (var oldTranslation in oldTranslationEntryList)
+            {
+                if (!sourceToKeyMap.ContainsKey(oldTranslation.source) && translationIsComplete)
+                {
+                    // discard the old translation
+                }
+                else if (newSourceToTranslationMap.TryGetValue(oldTranslation.source, out string? newTranslation)
+                    && (newTranslation != oldTranslation.translation || oldTranslation.author.StartsWith("automation:")))
+                {
+                    // update the translation
+                    alreadyTranslatedStrings.Add(oldTranslation.source);
+                    finishedList.Add(new TranslationEntry(oldTranslation.source, newTranslation, author, ingestionDate));
+                }
+                else
+                {
+                    // leave the old translation alone
+                    alreadyTranslatedStrings.Add(oldTranslation.source);
+                    finishedList.Add(oldTranslation);
+                }
+            }
+
+            // Going in the order it was found in the source file seems like useless pedantry, but I suppose it's better than hash-order
+            foreach (string key in keyOrderPerNewTranslations)
+            {
+                if (!alreadyTranslatedStrings.Contains(key))
+                {
+                    // keyToSourceStringMap[key] exists because we threw the "The incoming translation file contains translations..." exception above if it wasn't there.
+                    // keyToNewTranslationMap[key] exists because ReadIncomingTranslationFile produced it and guarantees it.
+                    finishedList.Add(new TranslationEntry(keyToSourceStringMap[key], keyToNewTranslationMap[key], author, ingestionDate));
+                }
+            }
+
+            this.WriteTranslationEntryList(locale, this.Config.ProjectPath, finishedList);
+        }
+
 
         private static readonly SHA256 sha256 = SHA256.Create();
 
@@ -209,7 +268,7 @@ namespace LocalizeFromSource
         private record TranslationTable(List<TranslationEntry> translations);
 
         protected virtual string GetPathToTranslationEntries(string locale, string sourceFolder)
-            => Path.Combine(sourceFolder, "i18nSource", locale + ".json");
+            => Path.Combine(this.I18nSourceFolder, locale + ".json");
 
         public virtual List<TranslationEntry> ReadTranslationEntryList(string locale)
         {
@@ -307,7 +366,7 @@ namespace LocalizeFromSource
             var keyValuePairs = new List<KeyValuePair<string, string>>();
             Dictionary<string, T> map = new();
             List<string> keyOrder = new();
-            using (JsonDocument doc = JsonDocument.Parse(content))
+            using (JsonDocument doc = JsonDocument.Parse(content, new JsonDocumentOptions() { CommentHandling = JsonCommentHandling.Skip }))
             {
                 foreach (JsonProperty property in doc.RootElement.EnumerateObject())
                 {

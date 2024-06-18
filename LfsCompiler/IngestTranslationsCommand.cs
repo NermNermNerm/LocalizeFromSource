@@ -68,59 +68,7 @@ namespace LocalizeFromSource
             var userConfig = Config.ReadFromFile(settings.SourceRoot);
             var config = new CombinedConfig(settings.SourceRoot, userConfig);
             var sdvTranslator = new SdvTranslationCompiler(config, settings.SourceRoot);
-
-            DateTime ingestionDate = DateTime.Now;
-            Dictionary<string, string> keyToSourceStringMap = sdvTranslator.ReadKeyToSourceMapFile();
-            string locale = sdvTranslator.GetLocaleOfIncomingTranslationFile(settings.TranslationPath);
-            (var keyToNewTranslationMap, var keyOrderPerNewTranslations, var commitTranslationWasBuiltFrom) = sdvTranslator.ReadIncomingTranslationFile(settings.TranslationPath);
-            var oldTranslationEntryList = sdvTranslator.ReadTranslationEntryList(locale);
-
-            var keysThatHaveTranslationsButAreNotPresentAnymore = keyToNewTranslationMap.Keys.Where(k => !keyToSourceStringMap.ContainsKey(k)).ToArray();
-            if (keysThatHaveTranslationsButAreNotPresentAnymore.Length > 0)
-            {
-                // This we consider fatal because our only recourse is to throw away the translation because we have no sure way to map the translation to a source string
-                throw new FatalErrorException($"The incoming translation file contains translations for strings that are not present in your compile.  That probably means that you are not checked out to the commit that the translator used to write the translation ({commitTranslationWasBuiltFrom}).  You need to create a branch from that commit and ingest there.  Missing key(s): {string.Join(", ", keysThatHaveTranslationsButAreNotPresentAnymore)}", TranslationCompiler.IngestingOutOfSync);
-            }
-            bool translationIsComplete = keyToSourceStringMap.Keys.All(keyToNewTranslationMap.ContainsKey);
-
-            Dictionary<string, string> newSourceToTranslationMap = new(); // TODO:
-            Dictionary<string, string> sourceToKeyMap = keyToSourceStringMap.ToDictionary(pair => pair.Value, pair => pair.Key);
-
-            HashSet<string> alreadyTranslatedStrings = new();
-            List<TranslationEntry> finishedList = new();
-            foreach (var oldTranslation in oldTranslationEntryList)
-            {
-                if (!sourceToKeyMap.ContainsKey(oldTranslation.source) && translationIsComplete)
-                {
-                    // discard the old translation
-                }
-                else if (newSourceToTranslationMap.TryGetValue(oldTranslation.source, out string? newTranslation)
-                    && (newTranslation != oldTranslation.translation || oldTranslation.author.StartsWith("automation:")))
-                {
-                    // update the translation
-                    alreadyTranslatedStrings.Add(oldTranslation.source);
-                    finishedList.Add(new TranslationEntry(oldTranslation.source, newTranslation, settings.Author, ingestionDate));
-                }
-                else
-                {
-                    // leave the old translation alone
-                    alreadyTranslatedStrings.Add(oldTranslation.source);
-                    finishedList.Add(oldTranslation);
-                }
-            }
-
-            // Going in the order it was found in the source file seems like useless pedantry, but I suppose it's better than hash-order
-            foreach (string key in keyOrderPerNewTranslations)
-            {
-                if (!alreadyTranslatedStrings.Contains(key))
-                {
-                    // keyToSourceStringMap[key] exists because we threw the "The incoming translation file contains translations..." exception above if it wasn't there.
-                    // keyToNewTranslationMap[key] exists because ReadIncomingTranslationFile produced it and guarantees it.
-                    finishedList.Add(new TranslationEntry(keyToSourceStringMap[key], keyToNewTranslationMap[key], settings.Author, ingestionDate));
-                }
-            }
-
-            sdvTranslator.WriteTranslationEntryList(locale, settings.SourceRoot, finishedList);
+            sdvTranslator.IngestTranslatedFile(settings.TranslationPath, settings.Author);
 
             Console.WriteLine($"Ingested \"{settings.TranslationPath}\" into {settings.SourceRoot}");
             return 0;
