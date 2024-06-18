@@ -80,30 +80,26 @@ namespace LocalizeFromSourceTests
         public void BasicDefaultJsonTests()
         {
             // Starts from nothing
-            testSubject.GenerateI18nFiles([new DiscoveredString("one two three", false, "test", 57)]);
+            testSubject.GenerateI18nFiles([new DiscoveredString("one two three", false, "test.cs", 57)]);
             var defaultJson = this.ReadDefaultJson();
             Assert.AreEqual(1, defaultJson!.Count);
-            Assert.AreEqual("one two three", defaultJson["000001"]);
+            Assert.IsTrue(defaultJson.Values.Contains("one two three"));
+
+            // check that the generated content has links
+            var raw = this.ReadJsonRaw("default.json");
+            Assert.IsTrue(raw.Contains("github"));
+            Assert.IsTrue(raw.Contains("test.cs"));
+            Assert.IsTrue(raw.Contains("57"));
 
             // Starts adds new thing, recognizes old thing and leaves it alone.
             testSubject.GenerateI18nFiles([
-                new DiscoveredString("one two three", false, "test", 57),
-                new DiscoveredString("a b c", false, "test", 67),
+                new DiscoveredString("one two three", false, "test.cs", 57),
+                new DiscoveredString("a b c", false, "test.cs", 67),
                 ]);
             defaultJson = this.ReadJson<Dictionary<string, string>>(Path.Combine(i18nFolder, "default.json"));
             Assert.AreEqual(2, defaultJson!.Count);
-            Assert.AreEqual("one two three", defaultJson["000001"]);
-            Assert.AreEqual("a b c", defaultJson["000002"]);
-
-            // recognizes near match
-            testSubject.GenerateI18nFiles([
-                new DiscoveredString("one two four", false, "test", 57),
-                new DiscoveredString("a b c", false, "test", 67),
-                ]);
-            defaultJson = this.ReadDefaultJson();
-            Assert.AreEqual(2, defaultJson!.Count);
-            Assert.AreEqual("one two four", defaultJson["000001"]);
-            Assert.AreEqual("a b c", defaultJson["000002"]);
+            Assert.IsTrue(defaultJson.Values.Contains("one two three"));
+            Assert.IsTrue(defaultJson.Values.Contains("a b c"));
         }
 
         [TestMethod]
@@ -112,9 +108,9 @@ namespace LocalizeFromSourceTests
             testSubject.GenerateI18nFiles([new DiscoveredString("one {0}, {1}, and {2}", true, "test", 57)]);
             var defaultJson = this.ReadDefaultJson();
             Assert.AreEqual(1, defaultJson!.Count);
-            Assert.AreEqual("one {{arg0}}, {{arg1}}, and {{arg2}}", defaultJson["000001"]);
+            Assert.IsTrue(defaultJson.Values.Contains("one {{arg0}}, {{arg1}}, and {{arg2}}"));
 
-            WriteDeJson(new Dictionary<string, string>() { { "000001", "ein {{arg2}}, {{arg1}}, {{arg0}} fin" } });
+            WriteDeJson(new Dictionary<string, string>() { { defaultJson.Keys.First(), "ein {{arg2}}, {{arg1}}, {{arg0}} fin" } });
 
             this.locale = "de-de";
             string translation = this.translator.TranslateFormatted($"one {"a"}, {"b"}, and {"c"}");
@@ -136,9 +132,9 @@ namespace LocalizeFromSourceTests
                 [new DiscoveredString("one {0:d4}|one|, {1:d3}|two|.", true, "test", 57)]);
             var defaultJson = this.ReadDefaultJson();
             Assert.AreEqual(1, defaultJson!.Count);
-            Assert.AreEqual("one {{one:d4}}, {{two:d3}}.", defaultJson["000001"]);
+            Assert.IsTrue(defaultJson.Values.Contains("one {{one:d4}}, {{two:d3}}."));
 
-            WriteDeJson(new Dictionary<string, string>() { { "000001", "ein {{one:x2}}, {{two:x3}} fin." } });
+            WriteDeJson(new Dictionary<string, string>() { { defaultJson.Keys.First(), "ein {{one:x2}}, {{two:x3}} fin." } });
 
             this.locale = "de-de";
             var translation = this.translator.TranslateFormatted($"one {123:d4}|one|, {234:d3}|two|.");

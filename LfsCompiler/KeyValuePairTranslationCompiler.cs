@@ -44,20 +44,21 @@ namespace LocalizeFromSource
 
             Dictionary<string, string> sourceStringToKeyMap = new();
             Dictionary<string, string> keyToSourceStringMap = new();
-            foreach (var pair in foundStringMap)
+            foreach (var (sourceString,discoveredString) in foundStringMap)
             {
-                var key = GenerateUniqueKeyForSourceString(pair.Key);
-                sourceStringToKeyMap[pair.Value.localizedString] = key;
-                keyToSourceStringMap[key] = pair.Value.localizedString;
+                var key = GenerateUniqueKeyForSourceString(sourceString);
+                sourceStringToKeyMap[sourceString] = key;
+                keyToSourceStringMap[key] = sourceString;
             }
 
             var keysInOrder = keyToSourceStringMap.Keys.OrderBy(key =>
             {
-                var discoveredString = foundStringMap[sourceStringToKeyMap[key]];
+                var discoveredString = foundStringMap[keyToSourceStringMap[key]];
                 return $"{discoveredString.file ?? ""}:{discoveredString.line ?? 0:8d}";
             }).ToList();
             var lastKey = keysInOrder.LastOrDefault();
 
+            Directory.CreateDirectory(this.I18nBuildOutputFolder);
             using (var writer = new StreamWriter(File.OpenWrite(this.GetPathToBuildOutputForLocale(locale: null))))
             {
                 writer.WriteLine("// TODO: Notes on how to use it");
@@ -76,7 +77,11 @@ namespace LocalizeFromSource
                     {
                         writer.WriteLine($"    // {link}");
                     }
-                    writer.WriteLine($"   {JsonSerializer.Serialize(key, this.JsonWriterOptions)}: {JsonSerializer.Serialize(sourceString)}{(key == lastKey ? "" : ",")}");
+                    writer.Write($"   {JsonSerializer.Serialize(key, this.JsonWriterOptions)}: {JsonSerializer.Serialize(sourceString)}");
+                    if (key != lastKey)
+                    {
+                        writer.WriteLine(",");
+                    }
                     writer.WriteLine();
                 }
                 writer.WriteLine("}");
