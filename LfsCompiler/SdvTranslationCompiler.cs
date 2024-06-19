@@ -88,7 +88,7 @@ namespace LocalizeFromSource
         public override Dictionary<string, string> ReadKeyToSourceMapFile()
         {
             // This path is SDV-specific.
-            string keyToSourceStringFile = Path.Combine(this.Config.ProjectPath, "i18n", "default.json");
+            string keyToSourceStringFile = Path.Combine(this.I18nBuildOutputFolder, "default.json");
             try
             {
                 // This file format is sdv-specific.
@@ -98,6 +98,42 @@ namespace LocalizeFromSource
             catch (Exception ex)
             {
                 throw new FatalErrorException($"Could not read {keyToSourceStringFile}: {ex.Message}", TranslationCompiler.BadFile, ex);
+            }
+        }
+
+        public override IEnumerable<DiscoveredString> GetLegacyStrings()
+        {
+            string legacyFile = Path.Combine(I18nSourceFolder, "default.json");
+            if (File.Exists(legacyFile))
+            {
+                Dictionary<string, string> keyValuePairs;
+                string content;
+                try
+                {
+                    content = File.ReadAllText(legacyFile);
+                    keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, string>>(content, this.JsonReaderOptions)
+                        ?? throw new JsonException("File should not be just null");
+                }
+                catch (Exception ex)
+                {
+                    throw new FatalErrorException($"Unable to read '{legacyFile}': {ex.Message}", BadFile, ex);
+                }
+
+                foreach ((var key, var str) in keyValuePairs) {
+                    int keyIndex = content.IndexOf(JsonSerializer.Serialize(key));
+                    int? lineNumber = null;
+                    if (keyIndex != -1)
+                    {
+                        for (int i = 0; i < keyIndex; i++)
+                        {
+                            if (content[i] == '\n')
+                            {
+                                ++lineNumber;
+                            }
+                        }
+                    }
+                    yield return new DiscoveredString(str, isFormat: false, file: legacyFile, line: lineNumber, key: key);
+                }
             }
         }
     }

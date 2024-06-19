@@ -13,6 +13,7 @@ namespace LocalizeFromSourceTests
         private const string TestFolderName = "ut1";
         private string projectFolder = null!;
         private string i18nFolder = null!;
+        private string i18nSourceFolder = null!;
         private string locale = "en";
 
         private TestableSdvTranslationCompiler testSubject = null!;
@@ -29,6 +30,7 @@ namespace LocalizeFromSourceTests
 
             this.projectFolder = Path.Combine(Environment.CurrentDirectory, TestFolderName);
             this.i18nFolder = Path.Combine(this.projectFolder, "i18n");
+            this.i18nSourceFolder = Path.Combine(this.projectFolder, "i18nSource");
 
             Config defaultConfig = new Config(true, Array.Empty<Regex>(), Array.Empty<string>());
             string thisAssemblyPath = Assembly.GetExecutingAssembly().Location;
@@ -223,21 +225,45 @@ namespace LocalizeFromSourceTests
             Assert.AreEqual("Ich bin neu hier", this.translator.Translate("I'm new here"));
         }
 
-        private static Dictionary<string, TranslationEdit> ReadTranslationEditsFile(string path)
+        // TODO Test when sources differ between translated file and built file.
+
+
+        [TestMethod]
+        public void TestLegacyTranslations()
         {
-            if (File.Exists(path))
-            {
-                var result = JsonSerializer.Deserialize<Dictionary<string, TranslationEdit>>(File.ReadAllText(path), new JsonSerializerOptions { ReadCommentHandling = JsonCommentHandling.Skip })!;
-                if (result is null)
-                {
-                    throw new JsonException($"{path} contains just 'null'.");
-                }
-                return result;
-            }
-            else
-            {
-                return new Dictionary<string, TranslationEdit>();
-            }
+            // Start with English-only
+            Directory.CreateDirectory(this.i18nSourceFolder);
+            File.WriteAllText(Path.Combine(i18nSourceFolder, "default.json"), @"{
+    ""key1"": ""old smapi-based value""
+}");
+            testSubject.GenerateI18nFiles([
+                new DiscoveredString("one two three four five", false, "test", 57),
+                new DiscoveredString("count me in", false, "test", 59)
+                ]);
+
+            // Now do a translation by reading the built default.json and replacing English with German
+            string translatedContent = this.ReadJsonRaw("default.json")
+                .Replace("one two three four five", "eins zwei drei vier fünf")
+                .Replace("count me in", "ich bin dabei")
+                .Replace("old smapi-based value", "alter Smapi-basierter Wert");
+            string translatedDePath = Path.Combine(this.projectFolder, "de.json");
+            File.WriteAllText(translatedDePath, translatedContent);
+
+            // Rebuild with our German translation
+            testSubject.IngestTranslatedFile(translatedDePath, "nexus:TestyMcTester");
+            testSubject.GenerateI18nFiles([
+                new DiscoveredString("one two three four five", false, "test", 57),
+                new DiscoveredString("count me in", false, "test", 59)
+                ]);
+
+            // Validate that it translates
+            this.locale = "de-de";
+            Assert.AreEqual("ich bin dabei", this.translator.Translate("count me in"));
+            Assert.AreEqual("alter Smapi-basierter Wert", this.translator.Translate("old smapi-based value"));
+            var translations = this.ReadDeJson();
+
+            // And retains the key from the legacy system
+            Assert.IsTrue(translations.ContainsKey("key1"));
         }
     }
 }

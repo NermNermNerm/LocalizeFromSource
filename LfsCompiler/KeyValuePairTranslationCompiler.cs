@@ -43,11 +43,18 @@ namespace LocalizeFromSource
                 foundStringMap[sdvFormatString] = discoveredString;
             }
 
+            foreach (var discoveredString in this.GetLegacyStrings())
+            {
+                string sdvFormatString = discoveredString.isFormat ? SdvTranslator.TransformCSharpFormatStringToSdvFormatString(discoveredString.localizedString) : discoveredString.localizedString;
+                // If a string is both discovered and coming from the legacy source, we'll prefer the key from the legacy source.
+                foundStringMap[sdvFormatString] = discoveredString;
+            }
+
             Dictionary<string, string> sourceStringToKeyMap = new();
             Dictionary<string, string> keyToSourceStringMap = new();
             foreach (var (sourceString,discoveredString) in foundStringMap)
             {
-                var key = GenerateUniqueKeyForSourceString(sourceString);
+                var key = discoveredString.key ?? GenerateUniqueKeyForSourceString(sourceString);
                 sourceStringToKeyMap[sourceString] = key;
                 keyToSourceStringMap[key] = sourceString;
             }

@@ -31,6 +31,8 @@ namespace LocalizeFromSource
 
         public abstract bool GenerateI18nFiles(IReadOnlyCollection<DiscoveredString> discoveredString);
 
+        public abstract IEnumerable<DiscoveredString> GetLegacyStrings();
+
         protected virtual void Error(int id, string message)
         {
             // https://learn.microsoft.com/en-us/visualstudio/msbuild/msbuild-diagnostic-format-for-tasks?view=vs-2022
