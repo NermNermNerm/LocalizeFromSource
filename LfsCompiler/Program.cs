@@ -24,6 +24,11 @@ namespace LocalizeFromSource
                 Console.Error.WriteLine($"LfsCompiler : Command line warning {TranslationCompiler.ErrorPrefix}{ex.ErrorCode:d4} : {ex.Message}");
                 return 1;
             }
+            catch (CommandRuntimeException ex)
+            {
+                Console.Error.WriteLine(ex.Message);
+                return 1;
+            }
             catch (Exception ex)
             {
                 Console.Error.WriteLine("Unhandled exception:");

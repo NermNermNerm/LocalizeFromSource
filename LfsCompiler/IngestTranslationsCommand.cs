@@ -28,7 +28,7 @@ namespace LocalizeFromSource
 
             public override ValidationResult Validate()
             {
-                if (!string.IsNullOrWhiteSpace(this.TranslationPath))
+                if (string.IsNullOrWhiteSpace(this.TranslationPath))
                 {
                     return ValidationResult.Error($"--translation must be supplied.  If calling from msbuild, follow this example: 'msbuild -target:IngestTranslations -p:TranslatedFile=es.json;TranslationAuthor=nexus:nermnermnerm'");
                 }
@@ -49,11 +49,11 @@ namespace LocalizeFromSource
 
                 if (string.IsNullOrEmpty(Author))
                 {
-                    return ValidationResult.Error("--author must be supplied");
+                    return ValidationResult.Error("--author must be supplied.   If calling from msbuild, follow this example: 'msbuild -target:IngestTranslations -p:TranslatedFile=es.json;TranslationAuthor=nexus:nermnermnerm'.");
                 }
                 if (!new Regex(@"^[a-z]+:[^:]+$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant).IsMatch(this.Author))
                 {
-                    return ValidationResult.Error("the 'Author' must be of the form 'source:id' where source is an identifier for the service where the person can be contacted (e.g. nexus, github) and 'id' is the identity of the person on that service");
+                    return ValidationResult.Error("The 'Author' must be of the form 'source:id' where source is an identifier for the service where the person can be contacted (e.g. nexus, github) and 'id' is the identity of the person on that service");
                 }
 
                 return ValidationResult.Success();
