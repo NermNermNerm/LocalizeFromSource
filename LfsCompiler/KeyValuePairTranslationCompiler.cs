@@ -235,7 +235,26 @@ namespace LocalizeFromSource
         {
             byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
             string base64String = Convert.ToBase64String(bytes);
-            return base64String.Substring(0, 10);
+
+            // The character set used by the above is A-Z, a-z, 0-9, + and /.  In order to make nice looking
+            // JSON and to make it compatible with SMAPI's generator, we want to convert this into a valid
+            // C# identifier.  We're also happy to just use part of the string to make it not such a long pile
+            // of gibberish.
+
+            StringBuilder result = new StringBuilder();
+            foreach (char c in base64String)
+            {
+                if (char.IsLetter(c) || (result.Length > 0 && char.IsDigit(c)))
+                {
+                    result.Append(c);
+                    if (result.Length == 10)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            return result.ToString();
         }
 
         protected virtual JsonSerializerOptions JsonReaderOptions => new()
