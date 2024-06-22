@@ -4,6 +4,8 @@ using System.Web;
 using NermNermNerm.Stardew.LocalizeFromSource;
 using Mono.Cecil;
 using System.Text.Json;
+using System.Text.Encodings.Web;
+using System.Text;
 
 namespace LocalizeFromSource
 {
@@ -18,10 +20,12 @@ namespace LocalizeFromSource
         private Lazy<string?> gitRepoRootFolder;
         private Lazy<string?> gitHeadCommit;
 
-        protected static readonly JsonSerializerOptions JsonReaderOptions = new JsonSerializerOptions()
+        public static readonly JsonSerializerOptions JsonReaderOptions = new JsonSerializerOptions()
         {
             ReadCommentHandling = JsonCommentHandling.Skip,
             AllowTrailingCommas = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            WriteIndented = true,
         };
 
         public CombinedConfig(IEnumerable<string> additionalInvariantMethodNames, string projectPath, Config userConfig)

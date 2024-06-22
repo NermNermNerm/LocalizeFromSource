@@ -91,7 +91,7 @@ namespace LocalizeFromSource
                     {
                         writer.WriteLine($"    // {link}");
                     }
-                    writer.Write($"    {JsonSerializer.Serialize(key, this.JsonWriterOptions)}: {JsonSerializer.Serialize(sourceString)}");
+                    writer.Write($"    {JsonSerializer.Serialize(key, this.JsonWriterOptions)}: {JsonSerializer.Serialize(sourceString, this.JsonWriterOptions)}");
                     if (key != lastKey)
                     {
                         writer.WriteLine(",");
@@ -269,17 +269,9 @@ namespace LocalizeFromSource
             return result.ToString();
         }
 
-        protected virtual JsonSerializerOptions JsonReaderOptions => new()
-        {
-            ReadCommentHandling = JsonCommentHandling.Skip
-        };
+        protected virtual JsonSerializerOptions JsonReaderOptions => CombinedConfig.JsonReaderOptions;
 
-        protected virtual JsonSerializerOptions JsonWriterOptions => new()
-        {
-            WriteIndented = true,
-            Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
-        };
-
+        protected virtual JsonSerializerOptions JsonWriterOptions => CombinedConfig.JsonReaderOptions;
 
         public static void WriteJsonDictionary<TValue>(string path, Dictionary<string, TValue> dictionary, Func<string,string> stringToSortOrder, string? prefix)
         {

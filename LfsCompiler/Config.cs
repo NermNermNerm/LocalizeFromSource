@@ -58,8 +58,9 @@ namespace LocalizeFromSource
 
             try
             {
-                var options = new JsonSerializerOptions() { PropertyNameCaseInsensitive = true, ReadCommentHandling = JsonCommentHandling.Skip };
+                var options = new JsonSerializerOptions(CombinedConfig.JsonReaderOptions);
                 options.Converters.Add(new RegexJsonConverter());
+                options.PropertyNameCaseInsensitive = true;
                 return JsonSerializer.Deserialize<Config>(File.ReadAllText(configPath), options) ?? throw new JsonException("null is not expected");
             }
             catch (Exception ex)

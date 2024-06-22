@@ -60,8 +60,6 @@ namespace LocalizeFromSource
             }
         }
 
-        private static readonly JsonSerializerOptions ReaderOptions = new JsonSerializerOptions() { PropertyNameCaseInsensitive = true, ReadCommentHandling = JsonCommentHandling.Skip };
-
         public override int Execute(CommandContext context, Settings settings)
         {
             // the user config doesn't have any bearing (yet) on this command, but perhaps later it could
