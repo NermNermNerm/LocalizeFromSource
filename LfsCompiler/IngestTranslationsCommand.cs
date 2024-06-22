@@ -30,7 +30,7 @@ namespace LocalizeFromSource
             {
                 if (string.IsNullOrWhiteSpace(this.TranslationPath))
                 {
-                    return ValidationResult.Error($"--translation must be supplied.  If calling from msbuild, follow this example: 'msbuild -target:IngestTranslations -p:TranslatedFile=es.json;TranslationAuthor=nexus:nermnermnerm'");
+                    return ValidationResult.Error($"--translation must be supplied.  If calling from dotnet build, follow this example: 'dotnet build -target:IngestTranslations \"-p:TranslatedFile=es.json;TranslationAuthor=nexus:nermnermnerm\"'.");
                 }
 
                 if (!File.Exists(this.TranslationPath))
@@ -49,7 +49,7 @@ namespace LocalizeFromSource
 
                 if (string.IsNullOrEmpty(Author))
                 {
-                    return ValidationResult.Error("--author must be supplied.   If calling from msbuild, follow this example: 'msbuild -target:IngestTranslations -p:TranslatedFile=es.json;TranslationAuthor=nexus:nermnermnerm'.");
+                    return ValidationResult.Error("--author must be supplied.   If calling from dotnet build, follow this example: 'dotnet build -target:IngestTranslations \"-p:TranslatedFile=es.json;TranslationAuthor=nexus:nermnermnerm\"'.");
                 }
                 if (!new Regex(@"^[a-z]+:[^:]+$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant).IsMatch(this.Author))
                 {

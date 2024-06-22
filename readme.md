@@ -1,31 +1,34 @@
 # Localization From Source
 
-This library aims to simplify the process of localizing Stardew Valley mods in two ways:
+This library aims to simplify the process of localizing Stardew Valley mods in several ways:
 
-* Automating the detection of out-of-date translations and reporting them clearly.
-* Simplifying the process of making strings ready to translate.
+* Dramatically lower the difficulty of finding and fixing missing or out-of-date translations.
+* Make initial translations more accurate by giving an easy pathway for translators to
+  see exactly how strings are used in the source code.
+* Make the process of converting an English-only mod into a localizable one far less painful.
+* Ensure that translations are complete by detecting un-localized strings at build-time.
 
-That first bullet point means that with this package, you go from having a `de.json`
-that looks like:
+With this package, you go from having a `de.json` that looks like:
 
 ```json
 {
-    // House events
+    // Hausveranstaltungen
     "help-with-monster": "Helfen! Helfen!  Da ist ein Monster im Keller!",
 ```
 
 to this:
 
 ```json
-// Please help make this translation better!  Correct any mistakes you find and
-// send it back to the mod author.
-// Search for '>>>' to find the known problems in this file.  For missing translations,
-// remove the '//' before the generated key and fill in the empty string with the
-// new translation.
+// Please help make this translation better!  Search for '>>>' to find known issues with the
+// translation.  Be careful to remove the '//' before the generated on missing translations!
+// When you've corrected everything and tested it locally, send your copy of this file back to
+// mod author for integration into the mod.  Instructions on how to integrate it into the source
+// repository can be found here:
+// https://github.com/NermNermNerm/LocalizeFromSource?tab=readme-ov-file#ingesting-translations
 //
-// Built from commit: 9fef11ee437e5affe73070bbe029a33205990067  <-- DO NOT DELETE!
+// Built from commit: 31384eb349d8b6c85a1d42e910e9da90b752daf4  !! DO NOT DELETE THIS LINE !!
 {
-    // https://github.com/NermNermNerm/Junimatic/blob/8fd9205876fed30b2c0f9d0ee7e1871b96c51b3c/Junimatic/i18n/default.json#L8
+    // https://github.com/NermNermNerm/Junimatic/blob/b591d6f87c8cabae1ab165116c0fedb1b6475c60/Junimatic/ModConfigMenu.cs#L38
     // >>>SOURCE STRING CHANGED - originally translated by nexus:playerone on 5/6/2021
     // old: "Help! Help!  There is a monster in the basement!"
     // new: "Help! Help!  There is a monster in the attic!"
@@ -35,10 +38,8 @@ to this:
 For the translator, you can see that we've given them context on exactly what the problem
 with the translation is and a pointer to the file on github so they can do further
 research into what else changed when the monster moved into the attic.  For the
-mod owner, they no longer have to guess at what version of the translator was working
-with to give them confidence that the localization was actually done correctly.
-That confidence is underscored by build-time analysis that alerts us if, say the
-translator missed a new translation.
+mod owner, the built-from-commit and the analysis done when the package is ingested means
+they can be confident that the translation is complete.
 
 The next feature of this package is mainly of interest to mods that haven't been translated
 yet or expect to add a substantial amount of new code.  Instead of localizing by taking
@@ -94,13 +95,13 @@ that might be different across all cultures.
    'automation:googletranslate', then every entry in the file will be flagged as coming
    from automation, and thus signal that a Human really ought to have a look at them.
 
-```powershell
-msbuild /t:IngestTranslation "/p:TranslatedFile=.\i18n\de.json;TranslationAuthor=github:id
-```
+    ```powershell
+    dotnet build /t:IngestTranslation "/p:TranslatedFile=.\i18n\de.json;TranslationAuthor=github:id
+    ```
 
 5. delete i18n\*
-6. Add 'i18n\' to your .gitignore
-7. git add --all .
+6. git add --all .
+7. Add 'i18n\' to your .gitignore
 8. git commit
 
 This should result in a commit that removes everything (under source control) from i18n and
@@ -111,7 +112,7 @@ That just gets you started if you have an existing mod and are just interested i
 annotated translation files.  To use this package to help you localize, later sections will
 cover how to take advantage of more of the package's features.
 
-Note that when you receive updated translation files from the community, you run that `msbuild`
+Note that when you receive updated translation files from the community, you run that build
 command on the file that you were given.  That will merge the changes into the `i18nSource`
 folder for you.
 
@@ -268,28 +269,28 @@ format.  That will make it show up as "{{count}} of 6 teleported" in the default
 1. Install the 'NermNermNerm.Stardew.LocalizeFromSource' NuGet package.
 2. In your .csproj file, remove the `Pathoschild.Stardew.ModTranslationClassBuilder` package
    if you plan on using the L() syntax and not the manual default.json.
-3. In your ModEntry, add these lines to hook up the translator:
+3. In your ModEntry, add this line to hook up the translator:
 
-```C#
+    ```C#
     public override void Entry(IModHelper helper)
     {
         SdvLocalize.Initialize(this);
-```
+    ```
 
 4. This step is not actually particular to using this library for localization.  SDV changes the Locale to the one
    selected by the user only after some assets are already loaded.  To my knowledge, this includes objects and buildings
    and crafting recipes (but recipes don't contain any localized text so they don't matter).  So, if you have any custom
    objects or buildings, add a line like this in your `Entry` method as well:
 
-```C#
-this.Helper.Events.Content.LocaleChanged += (_,_) => this.Helper.GameContent.InvalidateCache("Data/Objects");
-```
+    ```C#
+    this.Helper.Events.Content.LocaleChanged += (_,_) => this.Helper.GameContent.InvalidateCache("Data/Objects");
+    ```
 
 5. In each C# file that contains the strings that should be translated add this to the using blocks:
 
-```C#
-using static NermNermNerm.Stardew.LocalizeFromSource.SdvLocalize;
-```
+    ```C#
+    using static NermNermNerm.Stardew.LocalizeFromSource.SdvLocalize;
+    ```
 
 6. For each translatable string, wrap them in `L` if they are plain strings, `LF` if they are format strings.
    (And, if you are using String.Format, convert them to interpolated strings, like `$"x is {x}"`).
@@ -371,11 +372,11 @@ know to leave that string alone.  And, of course, raise an Issue about it so tha
 ## Enabling 'Strict' mode
 
 First off let's be clear here:  This package is using heuristics and user-supplied clues to sort out what needs to be
-localized and what doesn't.  It's not foolproof, and turning this mode on will open you up to some daily friction in
-your coding.  This package has a lot of tools designed to reduce that friction, but it'll never zero it out.  Is it
-worth it?  That's up to you.  Also, the tools we're describing here have the potential to overdo it - meaning that
-they may confuse a localizable string for an invariant one, causing mistakes.  Again, it's up to you.  Use these
-tools carefully.
+localized and what doesn't.  Like any static analysis tool, it's not foolproof, and turning this mode on will open
+you up to some daily friction in your coding.  This package has a lot of tools designed to reduce that friction,
+but it'll never zero it out.  Is it worth it?  That's up to you.  Also, the tools we're describing here have the
+potential to overdo it - meaning that they may confuse a localizable string for an invariant one, causing mistakes.
+Again, it's up to you.  Use these tools carefully.
 
 With those disclaimers out of the way, let's get on with it.  The first thing you should do is to add `L` and `LF`
 strings just by inspection.  The goal of doing this first is to, as much as possible, make your first build in
@@ -407,15 +408,14 @@ you need to change.  You'll probably be able to assemble them into these categor
   they're experiencing.  In a world where machine translation and web searches exist, it's probably better
   to make your logging in the source language.  If you've rolled some of your own logging functions, what
   you can do is convert them to always taking `FormattableString` as an argument (rather than plain string)
-  and adding `ArgumentIsCultureInvariant` as an attribute to the method.  Conversion to formattable string 
+  and adding `ArgumentIsCultureInvariant` as an attribute to the method.  Conversion to formattable string
   as an argument will force you to add a $ in front of all the plain strings you call it with.  It's not a
   great solution, but it feels better than having two different overloads for your logging function.
 * Exception messages are a similar story to logging.  It's going to be case-by-case.  If you use exceptions
   within your mod as a means to pass error messages to the user, then they should be localized.  However,
   most exception messages only ever land in the log file, and so are covered by what we said about Logging.
-  However, given the case-by-case nature of the thing, it's best to just go ahead and mark the messages
-  with an `I` or `L` and not try and automate the messages away.  However, if you want to play it differently,
-  you can add the exception's constructor to the `invariantMethods` block.
+  Given the case-by-case nature of the thing, it's perhaps best to just go ahead and mark the messages
+  with an `I` or `L` and not try and automate the messages away.
 * Methods and classes that just have a ton of non-localized strings in them that aren't ever going to have any
   localized strings.  It happens.  You can use the `NoStrict` attribute on methods and classes like this
   and it will disable strict-mode just for those methods/classes.
@@ -427,7 +427,7 @@ you need to change.  You'll probably be able to assemble them into these categor
   things they shouldn't.
 
 But there will be a broad set of cases that just don't fit into any of these categories and so you will
-doubtless have a fair number of `I` and `IF` calls sprinkled through your code.  Hopefully these instances
+doubtless end up with a few `I` and `IF` calls sprinkled through your code.  Hopefully these instances
 will have some beneficial effect in highlighting the nature of these strings and maybe making the code
 a little more readable rather than less so.
 
@@ -448,31 +448,28 @@ a translator and are also a developer, you can do these steps yourself to help t
    there.  Also search for '>>>' and ensure that it looks like the translator hasn't missed
    anything.
 3. Ensure you've cleaned your repo (e.g. commit or stash anything you happen to be working on)
-4. run `msbuild` in your command prompt or terminal.  If it's not found, start a new terminal
-   session with `msbuild` on the path (e.g. start a "Visual Studio Command Prompt").
-5. If the commit in the translation file isn't the head commit, create a branch, like so:
+4. If the commit in the translation file isn't the head commit, create a branch, like so:
 
-```powershell
-git branch ingestFrench <the-commit-id>
-git checkout ingestFrench
-```
+    ```powershell
+    git branch ingestFrench <the-commit-id>
+    git checkout ingestFrench
+    ```
 
-6. Run this - replacing `PATH-TO-NEW-JSON` with the path to the JSON file you got from the
+5. Run this - replacing `PATH-TO-NEW-JSON` with the path to the JSON file you got from the
    translator.  `AUTHORID` should be replaced with an identifier for the author - by convention
    it is provider (typically github or nexus) and their ID on that service.
 
-```powershell
-msbuild /t:IngestTranslation "/p:TranslatedFile=PATH-TO-NEW-JSON;TranslationAuthor=AUTHORID
-```
+    ```powershell
+    dotnet build /t:IngestTranslation "/p:TranslatedFile=PATH-TO-NEW-JSON;TranslationAuthor=AUTHORID"
+    ```
 
-7. Build (either in visual studio or with just `msbuild`) and verify there are no errors
+6. Build (either in visual studio or with just `dotnet build`) and verify there are no errors
    and the new files in the i18n folder look like what was supplied.
-
-8. Commit the changes (should only be changes to one file in `i18nSource`).
-9. Merge with your main branch.
-10. Build again.  Note that if there were changes between the time the time the release that
-    your translator used and now, there might be some more missing strings and other issues
-    that will require another pass of translation.
+7. Commit the changes (should only be changes to one file in `i18nSource`).
+8. Merge with your main branch.
+9. Build again.  If there were changes to translated strings between the time the time the release
+   that your translator used and now, there might be some more missing strings and other issues
+   that will require another pass of translation.
 
 ## Help wanted
 
@@ -483,7 +480,7 @@ there's room for improvement.  Here are a few areas where somebody could add val
 
 ### Actually construct a call graph
 
-Again looking at my IL code (in `LocalizeFromSource\Decompiler.cs`) you see that it's really pretty
+Looking at my IL code (in `LocalizeFromSource\Decompiler.cs`) you see that it's really pretty
 stupid - it just looks at the gap between `Ldstr` instructions and the first call it can recognize.
 That *seems* to be good enough, but I'd feel a whole lot better if a call-graph could be constructed.
 
@@ -594,7 +591,7 @@ that file directly, in this new world you'd run:
 cd DIRECTORY_WITH_CSPROJ
 git branch ingestde 9fef11ee437e5affe73070bbe029a33205990067
 git checkout ingestde
-msbuild /t:IngestTranslation /p:TranslatedFile=PATH/TO/SUPPLIED/de.json;TranslationAuthor=playertwo
+dotnet build /t:IngestTranslation "/p:TranslatedFile=PATH/TO/SUPPLIED/de.json;TranslationAuthor=nexus:playertwo"
 git add --all .
 git merge main
 git commit
@@ -608,14 +605,8 @@ the translation is coming from the latest release, which will commonly be the ca
 When all the dust settles, a new file will be created, `i18nSource\de.json`:
 
 ```json
-// Do not manually edit this file!
-// Instead, collect updates to the translation files distributed with your package and
-// use the tooling to merge the changes like this:
-//
-// msbuild /target:IngestTranslations /p:TranslatedFile=<path-to-file>.json;TranslationAuthor=<author-id>
-//
-// Where 'author-id' is '<platform>:<moniker>' where '<platform>' is something like 'nexus' or 'github' and
-// '<id>' is the identity of the person who supplied the translations on that platform.
+// Do not manually edit this file!  Follow these instructions to import changes:
+// https://github.com/NermNermNerm/LocalizeFromSource?tab=readme-ov-file#ingesting-translations
 {
   "translations": [
     {
@@ -629,28 +620,12 @@ When all the dust settles, a new file will be created, `i18nSource\de.json`:
 Then, when you build, you get the annotated `i18n\de.json`.
 
 You'll note that in that translation entry there was no key in the data at all.  That might seem jarring,
-but remember - the translator probably didn't look at the key very hard either.  They translated the string,
-not the key.  The key is meant to describe the scenario, and that description can't really be made better
-if changing it entails changing a dozen translation files that you probably can't test.  Hence the compiler
-step that generates `i18n\de.json` compares the strings in `default.json` with the strings in `i18nSource\de.json`
-and only then generates the key-to-translation mapping.
+but remember - the translator translates the string and its context, not the key.  That's why it's not needed
+or wanted here.  When the `i18n\de.json` file is generated by the compiler, we'll use the string shown here
+only if the source string is either identical to the string we translated or close to it.  If it ends up
+being a close rather than an exact match, it'll be flagged with a '>>>'.
 
-
-
-### How it helps Translators
-
-Now let's talk about what happens after someone creates a localized version of your default.json.  It's certainly easy
-to do on the first go-around.  They just copy/paste your default.json into `de.json` and convert all the English strings
-within it to German.  Where problems start is when you update a string or add a new one.  Then you have to get your
-German translator back on-line and have them diff your default.json file (which may not be easy for a non-technical
-person to do), and produce the necessary changes.
-
-This package automates that by maintaining the `de.json` file for you (doing things like deleting keys out of there when
-you delete strings from the code) and it also produces a `de.edits.json` file that spells out exactly what changed
-for the translators.  For each change, it shows the old source-language string, a github link to the code where the
-string was found, the string's new value, and the old translation.  It leaves a spot for the translator to fill in
-the new value so all they have to do is edit that one file.  When you rebuild with the updated `de.edits.json` file,
-it will move those strings into the `de.json` file and clean up the `de.edits.json` file once everything lines up.
+### How this package helps Translators
 
 This doesn't just aim at making it easier for the localizer to keep translations current - it aims at making it more
 likely that they will do it.  As it stands now, what tends to happen is that a multilingual player sees your mod,
@@ -658,5 +633,4 @@ likes it, enthuses over it, asks to do a translation so that their friends can p
 New multi-lingual players appear all the time, but it's pretty daunting to chime in and offer to update the
 translations - what state was it left in?  When was it last translated?  What strings are actually broken?
 Will the previous translator ever reappear?  All these questions and more make it hard for people to step in
-and fix things.  If there's a single file they can look at on GitHub that tells them exactly what needs to be updated,
-they can just update that file and mail you the update and leave it up to you to apply it.
+and fix things.

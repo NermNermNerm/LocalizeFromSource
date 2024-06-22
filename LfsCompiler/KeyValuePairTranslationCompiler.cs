@@ -73,7 +73,9 @@ namespace LocalizeFromSource
                 writer.WriteLine("// This file is generated - and the only reason to change it is if you are a translator.");
                 writer.WriteLine("// To translate this to another language, copy it to the language file name (e.g. 'es.json'");
                 writer.WriteLine("// for a Spanish translation), and replace all the English values with translated ones.");
-                writer.WriteLine("// Test your translations in-game and send this file back to the author so they can publish it.");
+                writer.WriteLine("// Test your translations in-game and send this file back to the author so they can integrate");
+                writer.WriteLine("// and publish it.  Instructions on how to integrate it into the source repo can be found here:");
+                writer.WriteLine("// https://github.com/NermNermNerm/LocalizeFromSource?tab=readme-ov-file#ingesting-translations");
                 writer.WriteLine("//");
                 if (headCommit is not null)
                 {
@@ -106,11 +108,12 @@ namespace LocalizeFromSource
 
                 using (var writer = new StreamWriter(File.Create(this.GetPathToBuildOutputForLocale(locale))))
                 {
-                    writer.WriteLine("// Please help make this translation better!  Correct any mistakes you find and");
-                    writer.WriteLine("// send it back to the mod author.");
-                    writer.WriteLine("// Search for '>>>' to find the known problems in this file.  For missing translations,");
-                    writer.WriteLine("// remove the '//' before the generated key and fill in the empty string with the");
-                    writer.WriteLine("// new translation.");
+                    writer.WriteLine("// Please help make this translation better!  Search for '>>>' to find known issues with the");
+                    writer.WriteLine("// translation.  Be careful to remove the '//' before the generated on missing translations!");
+                    writer.WriteLine("// When you've corrected everything and tested it locally, send your copy of this file back to");
+                    writer.WriteLine("// mod author for integration into the mod.  Instructions on how to integrate it into the source");
+                    writer.WriteLine("// repository can be found here:");
+                    writer.WriteLine("// https://github.com/NermNermNerm/LocalizeFromSource?tab=readme-ov-file#ingesting-translations");
                     writer.WriteLine("//");
                     if (headCommit is not null)
                     {
@@ -352,14 +355,8 @@ namespace LocalizeFromSource
 
             using StreamWriter writer = new StreamWriter(File.OpenWrite(translationEntryListPath));
 
-            writer.WriteLine("// Do not manually edit this file!");
-            writer.WriteLine("// Instead, collect updates to the translation files distributed with your package and");
-            writer.WriteLine("// use the tooling to merge the changes like this:");
-            writer.WriteLine("//");
-            writer.WriteLine("// msbuild /target:IngestTranslations /p:TranslatedFile=<path-to-file>.json;TranslationAuthor=<author-id>");
-            writer.WriteLine("//");
-            writer.WriteLine("// Where 'author-id' is '<platform>:<moniker>' where '<platform>' is something like 'nexus' or 'github' and");
-            writer.WriteLine("// '<id>' is the identity of the person who supplied the translations on that platform.");
+            writer.WriteLine("// Do not manually edit this file!  Follow these instructions to import changes:");
+            writer.WriteLine("// https://github.com/NermNermNerm/LocalizeFromSource?tab=readme-ov-file#ingesting-translations");
             writer.WriteLine(content);
         }
 
