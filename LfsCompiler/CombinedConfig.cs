@@ -16,6 +16,7 @@ namespace LocalizeFromSource
         private readonly Config userConfig;
         private Lazy<string?> gitHubUrlRoot;
         private Lazy<string?> gitRepoRootFolder;
+        private Lazy<string?> gitHeadCommit;
 
         protected static readonly JsonSerializerOptions JsonReaderOptions = new JsonSerializerOptions()
         {
@@ -33,6 +34,7 @@ namespace LocalizeFromSource
             this.TranslationCompiler = new SdvTranslationCompiler(this, projectPath);
             this.gitHubUrlRoot = new Lazy<string?>(this.GetGithubBaseUrl);
             this.gitRepoRootFolder = new Lazy<string?>(() => this.ExecuteGitCommand("rev-parse --show-toplevel"));
+            this.gitHeadCommit = new Lazy<string?>(() => this.ExecuteGitCommand("rev-parse head"));
             this.invariantMethodNames = this.GetInvariantMethodNames(additionalInvariantMethodNames);
         }
 
@@ -82,6 +84,8 @@ namespace LocalizeFromSource
             return new Uri(fileUrl);
         }
 
+        public string? GetHeadCommit() => this.gitHeadCommit.Value;
+
         private string? GetGithubBaseUrl()
         {
             string? repoRoot = this.ExecuteGitCommand("rev-parse --show-toplevel");
@@ -96,11 +100,13 @@ namespace LocalizeFromSource
                 return null;
             }
 
-            string? branchName = this.GetDefaultBranch();
-            if (branchName is null)
-            {
-                return null;
-            }
+            string? branchName = this.GetHeadCommit();
+            // Perhaps using a branch is the way to go in some circumstances?
+            //string? branchName = this.GetDefaultBranch();
+            //if (branchName is null)
+            //{
+            //    return null;
+            //}
 
             // Clean up the repository URL
             if (repoUrl.EndsWith(".git"))

@@ -6,7 +6,7 @@
     },
     "Junimatic": {
       "commandName": "Project",
-      "commandLineArgs": "--dll E:\\repos\\NermNermNerm.Junimatic\\Junimatic\\bin\\Debug\\Junimatic.dll --sourceRoot E:\\repos\\NermNermNerm.Junimatic\\Junimatic"
+      "commandLineArgs": "buildI18n --dll E:\\repos\\NermNermNerm.Junimatic\\Junimatic\\bin\\Debug\\Junimatic.dll --sourceRoot E:\\repos\\NermNermNerm.Junimatic\\Junimatic"
     },
     "JojaFinancial": {
       "commandName": "Project",

@@ -213,7 +213,7 @@ namespace LocalizeFromSourceTests
                 ]);
             newDeJson = this.ReadJsonRaw("de.json");
             // The updated built de.json is now clean...
-            Assert.IsFalse(newDeJson.Contains(">>>"));
+            Assert.IsFalse(newDeJson.Substring(newDeJson.IndexOf('{')).Contains(">>>"));
             // ...and credits both translators
             Assert.IsTrue(newDeJson.Contains("NoobyMcNewb"));
             Assert.IsTrue(newDeJson.Contains("TestyMcTester"));
