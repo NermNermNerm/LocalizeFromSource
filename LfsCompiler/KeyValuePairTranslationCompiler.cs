@@ -77,7 +77,7 @@ namespace LocalizeFromSource
                 writer.WriteLine("//");
                 if (headCommit is not null)
                 {
-                    writer.WriteLine($"// Built from commit: {headCommit}  <-- DO NOT DELETE!");
+                    writer.WriteLine($"// Built from commit: {headCommit}  !! DO NOT DELETE THIS LINE !!");
                 }
                 writer.WriteLine("{");
                 foreach (var key in keysInOrder)
@@ -114,7 +114,7 @@ namespace LocalizeFromSource
                     writer.WriteLine("//");
                     if (headCommit is not null)
                     {
-                        writer.WriteLine($"// Built from commit: {headCommit}  <-- DO NOT DELETE!");
+                        writer.WriteLine($"// Built from commit: {headCommit}  !! DO NOT DELETE THIS LINE !!");
                     }
                     writer.WriteLine("{");
                     foreach (var key in keysInOrder)

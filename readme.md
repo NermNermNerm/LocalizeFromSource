@@ -319,16 +319,16 @@ Note that this package has both compile-time and run-time elements.  All the fau
 There are special versions of `L` for use with quest and event descriptors.  The event one is straightforward:
 
 ```C#
-            else if (e.NameWithoutLocale.IsEquivalentTo("Data/Quests"))
-            {
-                e.Edit(editor =>
-                {
-                    IDictionary<string, string> data = editor.AsDictionary<string, string>().Data;
-                    data[MeetLinusAtTentQuest] = SdvQuest("Basic/Find Linus At His Tent/Linus said he had something he needed your help with./Go to Linus' tent before 10pm/null/-1/0/-1/false");
-                    data[MeetLinusAt60Quest] = SdvQuest("Basic/Meet Linus At Level 60/Linus had something he wanted to show you at level 60 of the mines./Follow Linus to level 60/null/-1/0/-1/false");
-                    data[CatchIcePipsQuest] = SdvQuest("Basic/Catch Six Ice Pips/Catch six ice pips and put them in the mysterious fish tank.//null/-1/0/-1/false");
-                });
-            }
+else if (e.NameWithoutLocale.IsEquivalentTo("Data/Quests"))
+{
+    e.Edit(editor =>
+    {
+        IDictionary<string, string> data = editor.AsDictionary<string, string>().Data;
+        data[MeetLinusAtTentQuest] = SdvQuest("Basic/Find Linus At His Tent/Linus said he had something he needed your help with./Go to Linus' tent before 10pm/null/-1/0/-1/false");
+        data[MeetLinusAt60Quest] = SdvQuest("Basic/Meet Linus At Level 60/Linus had something he wanted to show you at level 60 of the mines./Follow Linus to level 60/null/-1/0/-1/false");
+        data[CatchIcePipsQuest] = SdvQuest("Basic/Catch Six Ice Pips/Catch six ice pips and put them in the mysterious fish tank.//null/-1/0/-1/false");
+    });
+}
 ```
 
 It's just a matter of using `SdvQuest` instead of `L`.  The advantage of this is that it will produce localizable strings for each part of the quest in the `default.json` instead of the whole thing, so if ever you need to tweak the non-localizable parts, you can do that without having to mess with the translations.
