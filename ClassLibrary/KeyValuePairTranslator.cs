@@ -78,7 +78,7 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
             }
 
             var translationsForCurrentLocale = this.translations.GetOrAdd(currentLocale, (_) => this.ReadTranslationTable(currentLocale));
-            if (translationsForCurrentLocale.TryGetValue(key, out var translation))
+            if (translationsForCurrentLocale.TryGetValue(key, out var translation) && !string.IsNullOrEmpty(translation))
             {
                 return translation;
             }

@@ -109,10 +109,9 @@ namespace LocalizeFromSource
                 using (var writer = new StreamWriter(File.Create(this.GetPathToBuildOutputForLocale(locale))))
                 {
                     writer.WriteLine("// Please help make this translation better!  Search for '>>>' to find known issues with the");
-                    writer.WriteLine("// translation.  Be careful to remove the '//' before the generated on missing translations!");
-                    writer.WriteLine("// When you've corrected everything and tested it locally, send your copy of this file back to");
-                    writer.WriteLine("// mod author for integration into the mod.  Instructions on how to integrate it into the source");
-                    writer.WriteLine("// repository can be found here:");
+                    writer.WriteLine("// translation.  When you've corrected everything and tested it locally, send your copy of this");
+                    writer.WriteLine("// file back to the mod's author for integration into the mod.  Instructions on how to integrate");
+                    writer.WriteLine("// it into the source repository can be found here:");
                     writer.WriteLine("// https://github.com/NermNermNerm/LocalizeFromSource?tab=readme-ov-file#ingesting-translations");
                     writer.WriteLine("//");
                     if (headCommit is not null)
@@ -161,14 +160,7 @@ namespace LocalizeFromSource
                             }
                         }
 
-                        if (translation is not null)
-                        {
-                            writer.WriteLine($"    {JsonSerializer.Serialize(key, this.JsonWriterOptions)}: {JsonSerializer.Serialize(translation.translation, this.JsonWriterOptions)}{(key == lastKey ? "" : ",")}");
-                        }
-                        else
-                        {
-                            writer.WriteLine($"    // {JsonSerializer.Serialize(key, this.JsonWriterOptions)}: \"\"{(key == lastKey ? "" : ",")}");
-                        }
+                        writer.WriteLine($"    {JsonSerializer.Serialize(key, this.JsonWriterOptions)}: {JsonSerializer.Serialize(translation?.translation ?? "", this.JsonWriterOptions)}{(key == lastKey ? "" : ",")}");
 
                         if (key != lastKey)
                         {

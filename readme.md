@@ -20,10 +20,9 @@ to this:
 
 ```json
 // Please help make this translation better!  Search for '>>>' to find known issues with the
-// translation.  Be careful to remove the '//' before the generated on missing translations!
-// When you've corrected everything and tested it locally, send your copy of this file back to
-// mod author for integration into the mod.  Instructions on how to integrate it into the source
-// repository can be found here:
+// translation. When you've corrected everything and tested it locally, send your copy of this
+// file back to the mod's author for integration into the mod.  Instructions on how to integrate
+// it into the source repository can be found here:
 // https://github.com/NermNermNerm/LocalizeFromSource?tab=readme-ov-file#ingesting-translations
 //
 // Built from commit: 31384eb349d8b6c85a1d42e910e9da90b752daf4  !! DO NOT DELETE THIS LINE !!
