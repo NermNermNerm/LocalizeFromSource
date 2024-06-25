@@ -30,10 +30,10 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
 #if DEBUG
             DoPseudoLoc = doPseudoLocInDebug;
 #endif
-            OnBadTranslation += (message) => mod.Monitor.LogOnce($"Translation issue: {message}", StardewModdingAPI.LogLevel.Info);
+            OnBadTranslation += (message) => mod.Monitor.LogOnce($"Translation issue: {message}", StardewModdingAPI.LogLevel.Trace);
             OnTranslationFilesCorrupt += (message) => mod.Monitor.LogOnce($"Translation error: {message}", StardewModdingAPI.LogLevel.Error);
+            OnHelpWanted += (message) => mod.Monitor.LogOnce(message, StardewModdingAPI.LogLevel.Alert);
         }
-
 #endif
 
         /// <summary>
@@ -91,6 +91,16 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
         {
             add => EnsureTranslator().OnTranslationFilesCorrupt += value;
             remove => EnsureTranslator().OnTranslationFilesCorrupt -= value;
+        }
+
+        /// <summary>
+        ///   Raised when a translation file is requested that is either missing or incomplete.  The message gives
+        ///   an English description of how to do a translation.
+        /// </summary>
+        public static event Action<string>? OnHelpWanted
+        {
+            add => EnsureTranslator().OnHelpWanted += value;
+            remove => EnsureTranslator().OnHelpWanted -= value;
         }
 
         /// <summary>

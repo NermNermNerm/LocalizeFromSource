@@ -56,6 +56,8 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
             return keyToSourceStringDictionary;
         }
 
+        private readonly static Regex incompleteTranslationPattern = new Regex(@"^\s+//\s+>>>", RegexOptions.Multiline | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
         /// <inheritdoc/>
         /// <remarks>
         ///  SMAPI has the strategy of merging translations from most-specific to least, e.g. "pt-BR" and then "pt".
@@ -78,14 +80,18 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
             }
 
             string partial = localeId;
+            bool anyFileExisted = false;
+            string translationPath;
             do
             {
-                string translationPath = Path.Combine(this.i18nFolder, partial + ".json");
+                translationPath = Path.Combine(this.i18nFolder, partial + ".json");
                 if (File.Exists(translationPath))
                 {
+                    anyFileExisted = true;
                     try
                     {
-                        var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(translationPath), jsonSerializerOptions);
+                        var translationFileContents = File.ReadAllText(translationPath);
+                        var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(translationFileContents, jsonSerializerOptions);
                         if (dict is null)
                         {
                             this.RaiseTranslationFilesCorrupt($"{translationPath} has null contents");
@@ -93,6 +99,11 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
                         else
                         {
                             mergeIntoTable(dict);
+
+                            if (incompleteTranslationPattern.IsMatch(translationFileContents))
+                            {
+                                this.RaiseHelpWanted($"This mod's translation to your language is incomplete.  If you can read this, maybe you can help fix it!  Edit this file: '{translationPath}'.  There are instructions in that file not only for fixing it but also sharing it.  Thanks for helping!");
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -103,6 +114,11 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
 
                 partial = partial.Substring(0, Math.Max(0, partial.LastIndexOf('-')));
             } while (partial != "");
+
+            if (!anyFileExisted)
+            {
+                this.RaiseHelpWanted($"This mod doesn't have a translation to your language.  But if you can read this, maybe you can change that!  Create this file: '{translationPath}' by copying in the file named 'default.json' in that same folder.  Replace all the English strings with translated ones, reload the game and try the mod.  If everything works, send this file back to the mod author so it can be shared!");
+            }
 
             return table;
         }

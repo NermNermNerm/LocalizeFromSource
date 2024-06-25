@@ -67,11 +67,22 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
         /// </summary>
         public event Action<string>? OnBadTranslation;
 
-
         /// <summary>
         ///   Raises <see cref="OnBadTranslation"/>.
         /// </summary>
         internal virtual void RaiseBadTranslation(string warning)
             => this.OnBadTranslation?.Invoke(warning);
+
+        /// <summary>
+        ///   Raised when a translation file is requested that is either missing or incomplete.  The message gives
+        ///   an English description of how to do a translation.
+        /// </summary>
+        public event Action<string>? OnHelpWanted;
+
+        /// <summary>
+        ///   Raises <see cref="OnHelpWanted"/>.
+        /// </summary>
+        internal virtual void RaiseHelpWanted(string howToTranslate)
+            => this.OnHelpWanted?.Invoke(howToTranslate);
     }
 }
