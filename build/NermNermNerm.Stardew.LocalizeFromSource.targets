@@ -2,9 +2,9 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <UsingTask TaskName="Exec" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" />
   <Target Name="BuildI18nFolder" BeforeTargets="AfterBuild">
-    <Exec Command="&quot;$(MSBuildThisFileDirectory)..\tools\LfsCompiler.exe&quot; buildI18n -p &quot;$(MSBuildProjectDirectory)&quot; -d &quot;$(TargetPath)&quot;" />
+    <Exec Command="dotnet &quot;$(MSBuildThisFileDirectory)..\tools\LfsCompiler.dll&quot; buildI18n -p &quot;$(MSBuildProjectDirectory)&quot; -d &quot;$(TargetPath)&quot;" />
   </Target>
   <Target Name="IngestTranslation" DependsOnTargets="Build">
-    <Exec Command="&quot;$(MSBuildThisFileDirectory)..\tools\LfsCompiler.exe&quot; ingest -p &quot;$(MSBuildProjectDirectory)&quot; -t &quot;$(TranslatedFile)&quot; -a &quot;$(TranslationAuthor)&quot;" />
+    <Exec Command="dotnet &quot;$(MSBuildThisFileDirectory)..\tools\LfsCompiler.dll&quot; ingest -p &quot;$(MSBuildProjectDirectory)&quot; -t &quot;$(TranslatedFile)&quot; -a &quot;$(TranslationAuthor)&quot;" />
   </Target>
 </Project>
