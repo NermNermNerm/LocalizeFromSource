@@ -38,7 +38,7 @@ namespace LocalizeFromSource
             this.TranslationCompiler = new SdvTranslationCompiler(this, projectPath);
             this.gitHubUrlRoot = new Lazy<string?>(this.GetGithubBaseUrl);
             this.gitRepoRootFolder = new Lazy<string?>(() => this.ExecuteGitCommand("rev-parse --show-toplevel"));
-            this.gitHeadCommit = new Lazy<string?>(() => this.ExecuteGitCommand("rev-parse head"));
+            this.gitHeadCommit = new Lazy<string?>(() => this.ExecuteGitCommand("rev-parse HEAD"));
             this.invariantMethodNames = this.GetInvariantMethodNames(additionalInvariantMethodNames);
         }
 
