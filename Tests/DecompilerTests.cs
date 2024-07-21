@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using System.Text.RegularExpressions;
+using LfsCompiler;
 using LocalizeFromSource;
 using Mono.Cecil;
 using NermNermNerm.Stardew.LocalizeFromSource;
@@ -23,7 +24,7 @@ namespace LocalizeFromSourceTests
             string thisAssemblyPath = Assembly.GetExecutingAssembly().Location;
             this.assembly = AssemblyDefinition.ReadAssembly(thisAssemblyPath, new ReaderParameters { ReadSymbols = true });
             var invariantMethods = BuildI18nCommand.GetMethodsWithCustomAttribute(this.assembly);
-            var combinedConfig = new CombinedConfig(invariantMethods, Environment.CurrentDirectory, defaultConfig);
+            var combinedConfig = new CombinedConfig(invariantMethods, Environment.CurrentDirectory, defaultConfig, GitRepoInfo.CreateNull());
             this.testSubject = new(combinedConfig, typeof(SdvLocalizeCompiler), typeof(SdvLocalize));
             this.stubReporter = new StubReporter();
 

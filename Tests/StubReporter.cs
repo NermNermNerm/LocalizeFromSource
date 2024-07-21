@@ -22,7 +22,7 @@ namespace LocalizeFromSourceTests
         private string MakeString(SequencePoint? sequencePoint)
             => sequencePoint is null ? "(?)" : $"({Path.GetFileName(sequencePoint.Document.Url)}:{sequencePoint.StartLine})";
 
-        public override void ReportBadString(string s, SequencePoint? sequencePoint)
+        public override void ReportUnmarkedString(string s, SequencePoint? sequencePoint)
         {
             BadStrings.Add(MakeString(sequencePoint) + s);
         }

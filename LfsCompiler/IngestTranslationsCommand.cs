@@ -3,6 +3,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Text.Unicode;
+using LfsCompiler;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -64,7 +65,7 @@ namespace LocalizeFromSource
         {
             // the user config doesn't have any bearing (yet) on this command, but perhaps later it could
             var userConfig = Config.ReadFromFile(settings.SourceRoot);
-            var config = new CombinedConfig(settings.SourceRoot, userConfig);
+            var config = new CombinedConfig(settings.SourceRoot, userConfig, GitRepoInfo.CreateNull());
             var sdvTranslator = new SdvTranslationCompiler(config, settings.SourceRoot);
             sdvTranslator.IngestTranslatedFile(settings.TranslationPath, settings.Author);
 

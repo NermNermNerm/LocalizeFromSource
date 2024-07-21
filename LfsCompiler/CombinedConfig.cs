@@ -6,6 +6,7 @@ using Mono.Cecil;
 using System.Text.Json;
 using System.Text.Encodings.Web;
 using System.Text;
+using LfsCompiler;
 
 namespace LocalizeFromSource
 {
@@ -16,9 +17,7 @@ namespace LocalizeFromSource
     {
         private readonly IReadOnlySet<string> invariantMethodNames;
         private readonly Config userConfig;
-        private Lazy<string?> gitHubUrlRoot;
-        private Lazy<string?> gitRepoRootFolder;
-        private Lazy<string?> gitHeadCommit;
+        private readonly GitRepoInfo gitRepoInfo;
 
         public static readonly JsonSerializerOptions JsonReaderOptions = new JsonSerializerOptions()
         {
@@ -28,7 +27,7 @@ namespace LocalizeFromSource
             WriteIndented = true,
         };
 
-        public CombinedConfig(IEnumerable<string> additionalInvariantMethodNames, string projectPath, Config userConfig)
+        public CombinedConfig(IEnumerable<string> additionalInvariantMethodNames, string projectPath, Config userConfig, GitRepoInfo gitRepoInfo)
         {
             // Someday this could deduce the project type from the assembly
             this.userConfig = userConfig;
@@ -36,14 +35,12 @@ namespace LocalizeFromSource
             this.ProjectPath = projectPath;
 
             this.TranslationCompiler = new SdvTranslationCompiler(this, projectPath);
-            this.gitHubUrlRoot = new Lazy<string?>(this.GetGithubBaseUrl);
-            this.gitRepoRootFolder = new Lazy<string?>(() => this.ExecuteGitCommand("rev-parse --show-toplevel"));
-            this.gitHeadCommit = new Lazy<string?>(() => this.ExecuteGitCommand("rev-parse HEAD"));
             this.invariantMethodNames = this.GetInvariantMethodNames(additionalInvariantMethodNames);
+            this.gitRepoInfo = gitRepoInfo;
         }
 
-        public CombinedConfig(string projectPath, Config userConfig)
-            : this(Array.Empty<string>(), projectPath, userConfig)
+        public CombinedConfig(string projectPath, Config userConfig, GitRepoInfo gitRepoInfo)
+            : this(Array.Empty<string>(), projectPath, userConfig, gitRepoInfo)
         { }
 
         public string ProjectPath { get; }
@@ -64,8 +61,8 @@ namespace LocalizeFromSource
 
         public Uri? TryMakeGithubLink(string? fullPath, int? line)
         {
-            var urlRoot = this.gitHubUrlRoot.Value;
-            var repoRoot = this.gitRepoRootFolder.Value;
+            var urlRoot = this.gitRepoInfo.GithubRepoRootUrl;
+            var repoRoot = this.gitRepoInfo.RepositoryPath;
             if (fullPath is null || urlRoot is null || repoRoot is null)
             {
                 return null;
@@ -88,7 +85,7 @@ namespace LocalizeFromSource
             return new Uri(fileUrl);
         }
 
-        public string? GetHeadCommit() => this.gitHeadCommit.Value;
+        public string? GetHeadCommit() => this.gitRepoInfo.HeadCommit;
 
         private string? GetGithubBaseUrl()
         {

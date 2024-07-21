@@ -183,9 +183,27 @@ For quests, that's nice.  But there's also a `SdvEvent` method, and, well, I thi
 
 ### Ensuring everything that should be localized is localized
 
+#### Pseudo-Localization
+
 Generally, you can eyeball when a string should be localized and you can do a pretty good job of finding them.
-But if "pretty good" isn't what you're after and you want static analysis to help ensure that you've got everything,
-this package can do that.  Turn on `strict` mode by adding a `LocalizeFromSource.json` file to your project:
+One quick&easy technique that works well for helping you spot strings that should have been localized but
+weren't is called "pseudo-localization".  That's where you just take a string and add umlauts and accents
+to the English text so that it's easy to spot that localization has been done.  It also helps you find errors
+with *over* localization - that is, cases where you marked a string as localizable, but it really shouldn't
+have been.
+
+This package turns that on by default for DEBUG builds.  You can control that behavior in your `ModEntry`:
+
+```C#
+public override void Entry(IModHelper helper)
+{
+    SdvLocalize.Initialize(this, doPseudoLocInDebug: false);
+```
+
+#### Static Analysis
+
+This package also can do static analysis to help ensure that you've got everything.
+Turn on `strict` mode by adding a `LocalizeFromSource.json` file to your project:
 
 ```C#
 {
@@ -207,14 +225,16 @@ this package can do that.  Turn on `strict` mode by adding a `LocalizeFromSource
 }
 ```
 
-The other properties assist in weeding out false-positives.  `invariantStringPatterns` allows you to describe strings that can
-be mechanically identified as non-localizable.  `invariantMethods` allow you to list methods that take string identifiers as arguments.
+The other properties assist in weeding out false-positives.  `invariantStringPatterns` allows you to describe strings
+that can be mechanically identified as non-localizable.  `invariantMethods` allow you to list methods that take string
+identifiers as arguments.
 
 > Note: the patterns shown in this example are actually already in the default list of invariant patterns for Stardew Valley.
 > Similarly for the method list.  They're just listed in this example to give you a clearer idea of what to put here.
+> A good starting point would be `{ "isStrict": true, "invariantStringPatterns": [], "invariantMethods": [] }`
 
 There will always be cases that you can't mechanically identify or it's just not
-worth the hassle of editing the json, for those cases, you can use `I()`, similar to `L`:
+worth the hassle of editing the json.  For those cases, you can use `I()`, similar to `L`:
 
 ```C#
 var c = farmAnimals.Values.Count(a => a.type.Value.EndsWith(I(" Chicken")));
@@ -495,141 +515,3 @@ For the size and number of strings in your average mod, the Google Translate API
 for free.  While an automated translation isn't good, it's better than no translation in most cases.
 It wouldn't be too hard to code up something to supply missing translations using that service.
 There's already code in this package to flag a translation as coming from an automated source.
-
-
-
-
-## BONEYARD
-
-## Crowd-Sourced Localization
-
-Games and other production software are localized by professionals.  These professionals cost money, as they
-need to understand the source language, the target language in all its nuances, and the product they're
-localizing.  Usually they're given the strings to be localized in a big pile, a few weeks before the
-release and then again as patches come out, because the patches need to be localized in all markets
-simultaneously, so as not to give the impression that one market is more important than another.
-
-In mods and a fair number of industrial settings, this doesn't really work, because there's just no
-money to pay those highly skilled localizers.  The industrial answer (just don't localize
-what you can't afford to localize), won't cut it for game mods, and as it's a mod anyway, it
-ought to be flexible enough to allow for users to localize it.  And what do you know?  The rare
-skill-set that we were paying all that money for - knowing the local language, knowing the source
-language, and knowing the application is a skill-set that many mod users will have!
-
-Hence mods tend to follow the same model that shipped products follow, except that the translations
-aren't compiled into the product so they can be tweaked locally.  Further, mods tend to use the same
-idea that's prevailed in the world of localization since localization became a serious thing back
-in the 80's and 90's.
-
-But mod authors are still, even with that flexibility, playing by the same rules as the professional
-coders do - that is they dump a huge set of changes out for some multilingual enthusiast to pick up and
-hope for the best.  That works great for a while, but as the code changes, the translations follow only
-in fits and starts.  When, say, 90% of the strings are converted correctly, it's hard for a new enthusiast
-to get involved because they don't know:
-
-1. Is this string awkward because the translation is wrong?
-2. Is it because the mod is broken?
-3. Is it because the mod has changed and the translation hasn't kept up?
-4. Is it because I don't understand how the mod is supposed to work?
-
-...And in any case the speech dialog just closed so I don't even know what I saw.
-
-If they dug into it, they could find something like this in the de.json file, but they'd have to read
-the whole file themselves to find this line:
-
-```json
-    "help-with-monster": "Helfen! Helfen!  Da ist ein Monster im Keller!",
-```
-
-If they dug further, they could open up the default.json, then find the corresponding source string
-and possibly figure it out that the translation is bad.  Maybe.
-
-### A better experience
-
-This package aims to provide a better experience.  The moment when a player encounters a missing or
-outdated translation, there is a log message and (optionally) a chat dialog that says "Hey, this
-mod's translation is incomplete in your language!  Here's the file that needs fixed: ...\Mods\somemod\i18n\de.json"
-Even a first-timer could easily find the file without trouble and they'd feel perhaps a bit more comfortable
-doing it.  When they first open the file, there's a comment at the top line gives them further direction:
-
-```json
-// This translation is incomplete!  If you're able to help, search for ">>>" in this file
-// and address the issues described.  If you can do that, please send the corrected file back
-// to the author at github:NermNermNerm or nexusmods:NermNermNerm.
-//
-// Built commit: 9fef11ee437e5affe73070bbe029a33205990067
-{
-```
-
-If they do search, then instead of just a key and a value, they get this:
-
-```json
-    // https://github.com/NermNermNerm/Junimatic/blob/8fd9205876fed30b2c0f9d0ee7e1871b96c51b3c/Junimatic/i18n/default.json#L8
-    // >>>SOURCE STRING CHANGED - originally translated by nexus:playerone on 5/6/2021
-    // old: "Help! Help!  There is a monster in the basement!"
-    // new: "Help! Help!  There is a monster in the attic!"
-    "help-with-monster": "Helfen! Helfen!  Da ist ein Monster im Keller!",
-```
-
-This case is pretty clear-cut how the translation needs to be changed, but if it's more complicated, there's a link back
-to the source on GitHub so (given a certain amount of expertise), a person could use blame-analysis to see what else changed
-in the commit that moved the monster into the attic.
-
-### How things change for mod authors
-
-Putting together a fully-commented `de.json` like that requires either a great deal of meticulous work by the mod author
-or some extra tooling.  This package provides that tooling.  The way it works is that this package writes the translated
-json files from data it maintains.
-
-When you first create a mod, your i18n folder just contains the one file, `default.json`.  When that first player
-decides to help you out with a translation, they'll do just like they've always done - they'll copy the `default.json`
-and change all the English strings to their language and send you the file, say `de.json`.  Instead of just pasting
-that file directly, in this new world you'd run:
-
-```powershell
-cd DIRECTORY_WITH_CSPROJ
-git branch ingestde 9fef11ee437e5affe73070bbe029a33205990067
-git checkout ingestde
-dotnet build /t:IngestTranslation "/p:TranslatedFile=PATH/TO/SUPPLIED/de.json;TranslationAuthor=nexus:playertwo"
-git add --all .
-git merge main
-git commit
-```
-
-The idea of all the `git` shenanigans is to ensure that we start from the commit that built the `default.json` that
-our new friend *playertwo* translated.  Again, you can find it in the header commit for the translated json file that you
-received.  All that branching stuff is unnecessary if the default.json hasn't changed since you last released and
-the translation is coming from the latest release, which will commonly be the case.
-
-When all the dust settles, a new file will be created, `i18nSource\de.json`:
-
-```json
-// Do not manually edit this file!  Follow these instructions to import changes:
-// https://github.com/NermNermNerm/LocalizeFromSource?tab=readme-ov-file#ingesting-translations
-{
-  "translations": [
-    {
-      "source": "Help! Help!  There is a monster in the basement!",
-      "translation": "Helfen! Helfen!  Da ist ein Monster im Keller!",
-      "author": "nexus:playerone",
-      "ingestionDate": "2021-05-6T11:41:40.6409893-07:00"
-    },
-```
-
-Then, when you build, you get the annotated `i18n\de.json`.
-
-You'll note that in that translation entry there was no key in the data at all.  That might seem jarring,
-but remember - the translator translates the string and its context, not the key.  That's why it's not needed
-or wanted here.  When the `i18n\de.json` file is generated by the compiler, we'll use the string shown here
-only if the source string is either identical to the string we translated or close to it.  If it ends up
-being a close rather than an exact match, it'll be flagged with a '>>>'.
-
-### How this package helps Translators
-
-This doesn't just aim at making it easier for the localizer to keep translations current - it aims at making it more
-likely that they will do it.  As it stands now, what tends to happen is that a multilingual player sees your mod,
-likes it, enthuses over it, asks to do a translation so that their friends can play it too, then disappears entirely.
-New multi-lingual players appear all the time, but it's pretty daunting to chime in and offer to update the
-translations - what state was it left in?  When was it last translated?  What strings are actually broken?
-Will the previous translator ever reappear?  All these questions and more make it hard for people to step in
-and fix things.

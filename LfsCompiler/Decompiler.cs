@@ -131,7 +131,7 @@ namespace LocalizeFromSource
                     {
                         messagePostFix += $"  If this is a formatted string, perhaps you should be using {methodRef.Name}F?";
                     }
-                    reporter.ReportBadUsage(lastSequencePointSeen, TranslationCompiler.ImproperUseOfMethod, $"The argument to {fullName} should always be a literal string." + messagePostFix);
+                    reporter.ReportImproperUseOfMethod(lastSequencePointSeen, $"The argument to {fullName} should always be a literal string." + messagePostFix);
                 }
             }
 
@@ -199,7 +199,7 @@ namespace LocalizeFromSource
                 {
                     if (!isNoStrictMode && this.config.IsStrict)
                     {
-                        reporter.ReportBadString(s, ldStrSequencePoint ?? lastSequencePointBeforeLdStr);
+                        reporter.ReportUnmarkedString(s, ldStrSequencePoint ?? lastSequencePointBeforeLdStr);
                     }
 
                     if (this.IsLdStrInstruction(instruction, out _))

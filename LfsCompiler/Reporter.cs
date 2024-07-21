@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Mono.Cecil.Cil;
+using Spectre.Console;
 
 namespace LocalizeFromSource
 {
@@ -17,10 +18,7 @@ namespace LocalizeFromSource
 
         public IReadOnlyCollection<DiscoveredString> LocalizableStrings => this.discoveredStrings.Values;
 
-        private string GetPositionString(SequencePoint? sequencePoint)
-            => sequencePoint is null ? "" : $"{sequencePoint.Document.Url}({sequencePoint.StartLine},{sequencePoint.StartColumn})";
-
-        public virtual void ReportBadString(string s, SequencePoint? sequencePoint)
+        public virtual void ReportUnmarkedString(string s, SequencePoint? sequencePoint)
         {
             if (config.InvariantStringPatterns.Any(r => r.IsMatch(s)))
             {
@@ -35,9 +33,11 @@ namespace LocalizeFromSource
                 || lastReportSequencePoint.Document.Url != sequencePoint.Document.Url
                 || lastReportSequencePoint.StartLine != sequencePoint.StartLine)
             {
-                Console.Error.WriteLine(
-                    $"{GetPositionString(sequencePoint)} : {(config.IsStrict ? "error" : "warning")} {TranslationCompiler.ErrorPrefix}{TranslationCompiler.StringNotMarked:d4}: "
-                    + $"String is not marked as invariant or localized - it should be surrounded with I(), IF(), L() or LF() to indicate which it is: \"{s}\"");
+                this.WriteMessage(
+                    sequencePoint,
+                    config.IsStrict ? WarningOrError.Error : WarningOrError.Warning,
+                    TranslationCompiler.StringNotMarked,
+                    $"String is not marked as invariant or localized - it should be surrounded with I(), IF(), L() or LF() to indicate which it is: \"{s}\"");
             }
 
             lastReportSequencePoint = sequencePoint;
@@ -47,7 +47,7 @@ namespace LocalizeFromSource
         {
             if (s == "")
             {
-                this.ReportBadUsage(sequencePoint, TranslationCompiler.LocalizingEmpty, "The empty string should not be localized - it's empty in all locales.");
+                this.ReportEmptyStringShouldNotBeLocalized(sequencePoint);
             }
             else
             {
@@ -60,7 +60,7 @@ namespace LocalizeFromSource
         {
             if (s == "")
             {
-                this.ReportBadUsage(sequencePoint, TranslationCompiler.LocalizingEmpty, "The empty string should not be localized - it's empty in all locales.");
+                this.ReportEmptyStringShouldNotBeLocalized(sequencePoint);
             }
             else
             {
@@ -69,11 +69,51 @@ namespace LocalizeFromSource
             }
         }
 
-        public virtual void ReportBadUsage(SequencePoint? sequencePoint, int errorCode, string errorMessage)
+        public virtual void ReportImproperUseOfMethod(SequencePoint? sequencePoint, string message)
         {
-            this.AnyUsageErrorsEncountered = true;
-            Console.Error.WriteLine(
-                $"{GetPositionString(sequencePoint)} : error {TranslationCompiler.ErrorPrefix}{errorCode:d4}: {errorMessage}");
+            this.WriteMessage(sequencePoint, WarningOrError.Error, TranslationCompiler.ImproperUseOfMethod, message);
+        }
+
+        public virtual void ReportEmptyStringShouldNotBeLocalized(SequencePoint? sequencePoint)
+        {
+            this.WriteMessage(sequencePoint, WarningOrError.Error, TranslationCompiler.LocalizingEmpty, "The empty string should not be localized - it's empty in all locales.");
+        }
+
+        public virtual void ReportGitRepoError(string errorMessage)
+        {
+            this.WriteMessage(null, WarningOrError.Warning, TranslationCompiler.LocalizingEmpty, errorMessage);
+        }
+
+        protected enum WarningOrError
+        {
+            Error,
+            Warning,
+        }
+
+        protected virtual void WriteMessage(SequencePoint? sequencePoint, WarningOrError kind, int errorCode, string errorMessage)
+        {
+            // Definition for how to construct msbuild task error messages:
+            // https://learn.microsoft.com/en-us/visualstudio/msbuild/msbuild-diagnostic-format-for-tasks?view=vs-2022
+
+            StringBuilder message = new StringBuilder();
+            if (sequencePoint != null)
+            {
+                message.Append($"{sequencePoint.Document.Url}({sequencePoint.StartLine},{sequencePoint.StartColumn})");
+            }
+            else
+            {
+                message.Append("LfsCompiler");
+            }
+
+            message.Append(" : ");
+            message.Append(kind == WarningOrError.Error ? "error" : "warning");
+            message.Append(" ");
+            message.Append(TranslationCompiler.ErrorPrefix);
+            message.Append(errorCode.ToString("d4"));
+            message.Append(": ");
+            message.Append(errorMessage);
+
+            Console.Error.WriteLine(message.ToString());
         }
     }
 }

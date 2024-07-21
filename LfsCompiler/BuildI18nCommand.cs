@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Text.Json;
+using LfsCompiler;
 using Mono.Cecil;
 using NermNermNerm.Stardew.LocalizeFromSource;
 using Spectre.Console;
@@ -47,12 +48,13 @@ namespace LocalizeFromSource
         public override int Execute(CommandContext context, Settings settings)
         {
             var userConfig = Config.ReadFromFile(settings.SourceRoot);
+            var reporter = new Reporter(userConfig);
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(settings.DllPath, new ReaderParameters { ReadSymbols = true });
+            var repoInfo = GitRepoInfo.Create(reporter);
 
-            var combinedConfig = new CombinedConfig(GetMethodsWithCustomAttribute(assembly), settings.SourceRoot, userConfig);
+            var combinedConfig = new CombinedConfig(GetMethodsWithCustomAttribute(assembly), settings.SourceRoot, userConfig, repoInfo);
 
             var decomp = new Decompiler(combinedConfig, typeof(SdvLocalizeCompiler), typeof(SdvLocalize));
-            var reporter = new Reporter(userConfig);
             decomp.FindLocalizableStrings(assembly, reporter);
 
             // Is this a good idea?  Should we really block the build for this?

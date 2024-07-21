@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using LfsCompiler;
 using LocalizeFromSource;
 using Mono.Cecil;
 using NermNermNerm.Stardew.LocalizeFromSource;
@@ -33,9 +34,10 @@ namespace LocalizeFromSourceTests
             this.i18nSourceFolder = Path.Combine(this.projectFolder, "i18nSource");
 
             Config defaultConfig = new Config(true, Array.Empty<Regex>(), Array.Empty<string>());
+            var repoInfo = GitRepoInfo.Create(new Reporter(defaultConfig));
             string thisAssemblyPath = Assembly.GetExecutingAssembly().Location;
             var assembly = AssemblyDefinition.ReadAssembly(thisAssemblyPath, new ReaderParameters { ReadSymbols = true });
-            var combinedConfig = new CombinedConfig(projectFolder, defaultConfig);
+            var combinedConfig = new CombinedConfig(projectFolder, defaultConfig, repoInfo);
             this.testSubject = new TestableSdvTranslationCompiler(combinedConfig, projectFolder);
             this.translator = new SdvTranslator(() => this.locale,  "en", this.i18nFolder);
         }
