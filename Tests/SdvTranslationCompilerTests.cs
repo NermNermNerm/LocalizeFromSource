@@ -34,7 +34,7 @@ namespace LocalizeFromSourceTests
             this.i18nSourceFolder = Path.Combine(this.projectFolder, "i18nSource");
 
             Config defaultConfig = new Config(true, Array.Empty<Regex>(), Array.Empty<string>());
-            var repoInfo = GitRepoInfo.Create(new Reporter(defaultConfig));
+            var repoInfo = GitRepoInfo.Create(new Reporter(defaultConfig), Environment.CurrentDirectory);
             string thisAssemblyPath = Assembly.GetExecutingAssembly().Location;
             var assembly = AssemblyDefinition.ReadAssembly(thisAssemblyPath, new ReaderParameters { ReadSymbols = true });
             var combinedConfig = new CombinedConfig(projectFolder, defaultConfig, repoInfo);

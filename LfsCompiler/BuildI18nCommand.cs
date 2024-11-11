@@ -50,7 +50,7 @@ namespace LocalizeFromSource
             var userConfig = Config.ReadFromFile(settings.SourceRoot);
             var reporter = new Reporter(userConfig);
             AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(settings.DllPath, new ReaderParameters { ReadSymbols = true });
-            var repoInfo = GitRepoInfo.Create(reporter);
+            var repoInfo = GitRepoInfo.Create(reporter, settings.SourceRoot);
 
             var combinedConfig = new CombinedConfig(GetMethodsWithCustomAttribute(assembly), settings.SourceRoot, userConfig, repoInfo);
 

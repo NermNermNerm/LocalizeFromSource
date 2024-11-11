@@ -18,9 +18,9 @@ namespace LfsCompiler
 
         public static GitRepoInfo CreateNull() => new GitRepoInfo(null, null, null);
 
-        public static GitRepoInfo Create(Reporter reporter)
+        public static GitRepoInfo Create(Reporter reporter, string sourceRoot)
         {
-            string? repositoryPath = GetRepoRoot();
+            string? repositoryPath = GetRepoRoot(sourceRoot);
             if (repositoryPath is null)
             {
                 reporter.ReportGitRepoError("Not executed from a git repository.  Hyperlinks will not be generated.");
@@ -42,9 +42,9 @@ namespace LfsCompiler
             return new GitRepoInfo(repositoryPath, headCommit, githubUri);
         }
 
-        private static string? GetRepoRoot()
+        private static string? GetRepoRoot(string sourceRoot)
         {
-            string? path = Environment.CurrentDirectory;
+            string? path = sourceRoot;
             do
             {
                 if (Directory.Exists(Path.Combine(path, ".git")))
