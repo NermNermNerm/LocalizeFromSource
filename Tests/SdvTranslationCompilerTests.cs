@@ -267,5 +267,43 @@ namespace LocalizeFromSourceTests
             // And retains the key from the legacy system
             Assert.IsTrue(translations.ContainsKey("key1"));
         }
+
+        [TestMethod]
+        public void TestEvents()
+        {
+            // Start with English-only, then build up a German translation
+            testSubject.GenerateI18nFiles([
+                new DiscoveredString("count me in", false, "test", 59)
+                ]);
+            string translatedContent = this.ReadJsonRaw("default.json")
+                .Replace("count me in", "ich bin dabei");
+            string translatedDePath = Path.Combine(this.projectFolder, "de.json");
+            File.WriteAllText(translatedDePath, translatedContent);
+            testSubject.IngestTranslatedFile(translatedDePath, "nexus:TestyMcTester");
+            testSubject.GenerateI18nFiles([
+                new DiscoveredString("count me in", false, "test", 59)
+                ]);
+            this.locale = "de-de";
+
+            // It should correctly translate the event, remove leading blank lines, add trailing /'s except on blank lines.
+            var translation = this.translator.SdvEvent($@"
+playful
+-1000 -1000
+farmer 8 24 0
+pause 2000
+
+spriteText 4 ""count me in""
+end fade
+");
+            Assert.AreEqual($@"playful/
+-1000 -1000/
+farmer 8 24 0/
+pause 2000/
+
+spriteText 4 ""ich bin dabei""/
+end fade/
+".Replace("\r", ""), translation.Replace("\r", ""));
+
+        }
     }
 }

@@ -128,6 +128,15 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
         private static readonly Regex sdvAssetPathPattern = new Regex(
             @"^(\([A-Z]+\))?\w+[\./\\][\w\./\\]*\w$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
+        private static readonly Regex sdvEventLineTerminatorPattern = new Regex(
+            @"[ \t/]*(?<newline>\r?\n)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        private static readonly Regex sdvEventBlankLinePattern = new Regex(
+            @"^[ \t/]+(?<newline>\r?\n)", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Multiline);
+
+        private static readonly Regex openingWhitespacePattern = new Regex(
+            @"^\s+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
         /// <summary>
         ///   Localizes the strings within Stardew Valley Event code.
         /// </summary>
@@ -157,6 +166,15 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
                         + sourceLanguageEventCode.Substring(localizablePart.Index + localizablePart.Length, m.Index + m.Length - localizablePart.Index - localizablePart.Length);
                 }
             });
+
+            // The event language requires separation by '/', which is mainly a thing that invites failure, as practically, you want
+            // to have newline separated lines, and it's easy to forget that trailing slash, especially as it makes the code hard to
+            // read as well.  This mishmash adds a trailing slash to every line.  We keep the original newline strategy and remove
+            // lines that now contain nothing but slashes just to make it tidy, as the event text can get written to the log.
+            translated = openingWhitespacePattern.Replace(translated, "");
+            translated = sdvEventLineTerminatorPattern.Replace(translated, m => { return "/" + m.Groups["newline"].Value; });
+            translated = sdvEventBlankLinePattern.Replace(translated, m => m.Groups["newline"].Value);
+
             return translated;
         }
 
