@@ -26,7 +26,7 @@ namespace NermNermNerm.Stardew.LocalizeFromSource
         /// <param name="doPseudoLocInDebug">If true, applies a tweak to all strings to make it clear that they are subject to translation.</param>
         public static void Initialize(StardewModdingAPI.Mod mod, string sourceLanguage = "en", bool doPseudoLocInDebug = true)
         {
-            translator = new SdvTranslator(() => mod.Helper.Translation.Locale, sourceLanguage, Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "i18n"));
+            translator = new SdvTranslator(() => mod.Helper.Translation.Locale, sourceLanguage, Path.Combine(Path.GetDirectoryName(mod.Helper.DirectoryPath)!, "i18n"));
 #if DEBUG
             DoPseudoLoc = doPseudoLocInDebug;
 #endif
